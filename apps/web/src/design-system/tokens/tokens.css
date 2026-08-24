@@ -1,0 +1,128 @@
+/**
+ * GO Exchange Design System — Visual Tokens
+ * Premium 2D/3D hybrid casino aesthetic
+ */
+
+:root {
+  /* ─── Background ─── */
+  --ds-bg: #050408;
+  --ds-bg-gradient-top: rgba(139, 0, 32, 0.22);
+  --ds-bg-gradient-bottom: rgba(88, 28, 135, 0.18);
+
+  /* ─── Surfaces ─── */
+  --ds-surface: #12081c;
+  --ds-surface-elevated: #1a0e14;
+  --ds-surface-crimson: #2a0810;
+  --ds-surface-crimson-hover: #3a0f18;
+  --ds-surface-game: #6b1424;
+  --ds-surface-game-felt: linear-gradient(180deg, #9f1239 0%, #7f1d1d 45%, #6b1424 100%);
+  --ds-surface-overlay: rgba(0, 0, 0, 0.72);
+
+  /* ─── Borders ─── */
+  --ds-border: rgba(201, 162, 39, 0.22);
+  --ds-border-strong: rgba(201, 162, 39, 0.45);
+  --ds-border-chrome: linear-gradient(
+    135deg,
+    #b8b8c0 0%,
+    #6b6b78 25%,
+    #e8e8f0 50%,
+    #6b6b78 75%,
+    #b8b8c0 100%
+  );
+  --ds-border-gold: rgba(245, 200, 66, 0.4);
+  --ds-border-subtle: rgba(255, 255, 255, 0.06);
+
+  /* ─── Text ─── */
+  --ds-text-primary: #f5f0e8;
+  --ds-text-secondary: #a89888;
+  --ds-text-muted: #7a6e62;
+  --ds-text-inverse: #1a0a00;
+  --ds-text-gold: #f5c842;
+
+  /* ─── Brand colors ─── */
+  --ds-gold: #f5c842;
+  --ds-gold-dim: #c9a227;
+  --ds-gold-dark: #8b6914;
+  --ds-gold-glow: rgba(245, 200, 66, 0.32);
+  --ds-chrome: #c0c0c8;
+  --ds-chrome-dim: #888894;
+  --ds-red: #c41e3a;
+  --ds-red-dark: #8b0020;
+  --ds-red-glow: rgba(196, 30, 58, 0.38);
+  --ds-purple: #581c87;
+  --ds-purple-glow: rgba(88, 28, 135, 0.35);
+
+  /* ─── Semantic ─── */
+  --ds-success: #22c55e;
+  --ds-success-dim: #15803d;
+  --ds-success-glow: rgba(34, 197, 94, 0.25);
+  --ds-warning: #f59e0b;
+  --ds-warning-dim: #b45309;
+  --ds-danger: #ef4444;
+  --ds-danger-dim: #b91c1c;
+  --ds-danger-glow: rgba(239, 68, 68, 0.3);
+
+  /* ─── Shadows ─── */
+  --ds-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --ds-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ds-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --ds-shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(139, 0, 32, 0.25);
+  --ds-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+  --ds-shadow-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+  --ds-shadow-glow-gold: 0 0 16px var(--ds-gold-glow), 0 0 32px rgba(245, 200, 66, 0.12);
+  --ds-shadow-glow-red: 0 0 16px var(--ds-red-glow);
+  --ds-shadow-button: 0 4px 0 rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35);
+
+  /* ─── Radii ─── */
+  --ds-radius-xs: 4px;
+  --ds-radius-sm: 6px;
+  --ds-radius-md: 10px;
+  --ds-radius-lg: 14px;
+  --ds-radius-xl: 20px;
+  --ds-radius-full: 9999px;
+
+  /* ─── Spacing ─── */
+  --ds-space-1: 0.25rem;
+  --ds-space-2: 0.5rem;
+  --ds-space-3: 0.75rem;
+  --ds-space-4: 1rem;
+  --ds-space-5: 1.25rem;
+  --ds-space-6: 1.5rem;
+  --ds-space-8: 2rem;
+  --ds-space-10: 2.5rem;
+  --ds-space-12: 3rem;
+
+  /* ─── Typography ─── */
+  --ds-font-display: 'Kanit', sans-serif;
+  --ds-font-body: 'Kanit', sans-serif;
+  --ds-font-mono: 'Kanit', sans-serif;
+  --ds-text-xs: 0.72rem;
+  --ds-text-sm: 0.85rem;
+  --ds-text-base: 1rem;
+  --ds-text-lg: 1.125rem;
+  --ds-text-xl: 1.35rem;
+  --ds-text-2xl: 1.75rem;
+  --ds-text-3xl: 2.25rem;
+  --ds-leading-tight: 1.2;
+  --ds-leading-normal: 1.5;
+  --ds-tracking-wide: 0.06em;
+  --ds-tracking-wider: 0.12em;
+
+  /* ─── Layout ─── */
+  --ds-header-height: 64px;
+  --ds-mobile-nav-height: 64px;
+  --ds-content-max: 1280px;
+  --ds-game-sidebar-width: 280px;
+
+  /* ─── Motion ─── */
+  --ds-transition-fast: 120ms ease;
+  --ds-transition-base: 200ms ease;
+  --ds-transition-slow: 350ms ease;
+
+  /* ─── Z-index ─── */
+  --ds-z-dropdown: 50;
+  --ds-z-header: 100;
+  --ds-z-mobile-nav: 100;
+  --ds-z-modal: 200;
+  --ds-z-toast: 300;
+}

@@ -1,0 +1,52 @@
+.dice-table-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  max-width: min(280px, 42vw);
+  padding: 0.32rem 0.55rem;
+  border-radius: 8px;
+  background: rgba(8, 5, 14, 0.62);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.dice-table-hud__round,
+.dice-table-hud__time {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.dice-table-hud__phase {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #f5d76e;
+}
+
+.dice-table-hud__time {
+  color: #fde68a;
+}
+
+.dice-table-hud__match {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(245, 240, 232, 0.78);
+}
+
+.dice-table-hud__match span {
+  color: rgba(212, 175, 55, 0.7);
+  margin: 0 0.2rem;
+}
+
+@media (max-height: 500px), (max-width: 920px) and (orientation: landscape) {
+  .dice-table-hud__match {
+    display: none;
+  }
+}

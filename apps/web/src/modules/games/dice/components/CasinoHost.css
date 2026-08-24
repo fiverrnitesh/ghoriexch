@@ -1,0 +1,67 @@
+.casino-host {
+  position: absolute;
+  top: -8%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.casino-host__backdrop {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 80px;
+  transform: translate(-50%, -20%);
+  background: radial-gradient(ellipse, rgba(100, 80, 200, 0.25) 0%, transparent 70%);
+  filter: blur(8px);
+}
+
+.casino-host__figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.casino-host__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #2a2040, #120a20);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  box-shadow:
+    0 0 0 2px rgba(212, 175, 55, 0.55),
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  display: grid;
+  place-items: center;
+}
+
+.casino-host__initials {
+  font-family: var(--ds-font-display);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #e8c547;
+}
+
+.casino-host__label {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 640px) {
+  .casino-host {
+    top: -4%;
+  }
+
+  .casino-host__avatar {
+    width: 44px;
+    height: 44px;
+  }
+}

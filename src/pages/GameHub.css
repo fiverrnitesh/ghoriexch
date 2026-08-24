@@ -1,0 +1,153 @@
+.home {
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+
+.home-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.home-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-weight: 800;
+}
+
+.home-logo__mark {
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.home-logo__text {
+  font-size: 1.15rem;
+  color: #111827;
+}
+
+.home-nav {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.home-nav__link {
+  text-decoration: none;
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.home-nav__link--active,
+.home-nav__link:hover {
+  color: #f97316;
+}
+
+.home-auth {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.home-auth__btn {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.home-auth__btn--ghost {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.home-auth__btn--primary {
+  border: none;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #fff;
+}
+
+.home-banner {
+  background: linear-gradient(135deg, #111827 0%, #1f2937 50%, #374151 100%);
+  color: #fff;
+  padding: 2rem 1.25rem;
+}
+
+.home-banner__content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-banner__tag {
+  display: inline-block;
+  margin: 0 0 0.5rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.home-banner h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  color: #fff;
+}
+
+.home-banner p {
+  margin: 0.5rem 0 0;
+  color: #d1d5db;
+}
+
+.home-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 2.5rem;
+}
+
+.home-footer {
+  padding: 1.25rem;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.home-footer p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .home-nav {
+    display: none;
+  }
+
+  .home-header__inner {
+    padding: 0.75rem 1rem;
+  }
+
+  .home-auth__btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}

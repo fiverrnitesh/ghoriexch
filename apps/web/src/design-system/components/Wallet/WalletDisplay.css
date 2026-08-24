@@ -1,0 +1,98 @@
+.ds-wallet-display--compact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-wallet-display__label,
+.ds-wallet-display__sublabel {
+  display: block;
+  font-size: var(--ds-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ds-tracking-wider);
+  color: var(--ds-text-secondary);
+}
+
+.ds-wallet-display__main {
+  margin-bottom: var(--ds-space-4);
+}
+
+.ds-wallet-display__amount {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-xl);
+  font-weight: 800;
+  color: var(--ds-gold);
+}
+
+.ds-wallet-display__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ds-space-4);
+  padding-top: var(--ds-space-4);
+  border-top: 1px solid var(--ds-border);
+}
+
+.ds-wallet-display__subvalue {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-lg);
+  font-weight: 700;
+  color: var(--ds-text-primary);
+}
+
+/* Balance Badge */
+.ds-balance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--ds-radius-full);
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: default;
+  font-family: inherit;
+}
+
+button.ds-balance-badge {
+  cursor: pointer;
+  transition: box-shadow var(--ds-transition-fast), transform var(--ds-transition-fast);
+}
+
+button.ds-balance-badge:hover {
+  transform: translateY(-1px);
+}
+
+.ds-balance-badge--sm {
+  padding: 0.25rem 0.55rem;
+  font-size: var(--ds-text-xs);
+}
+
+.ds-balance-badge--md {
+  font-size: var(--ds-text-sm);
+}
+
+.ds-balance-badge--gold {
+  background: linear-gradient(135deg, rgba(245,200,66,0.15), rgba(139,0,32,0.12));
+  border-color: var(--ds-border-gold);
+  color: var(--ds-gold);
+}
+
+.ds-balance-badge--gold:hover {
+  box-shadow: var(--ds-shadow-glow-gold);
+}
+
+.ds-balance-badge--muted {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--ds-border);
+  color: var(--ds-text-secondary);
+}
+
+.ds-balance-badge--success {
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.3);
+  color: var(--ds-success);
+}
+
+.ds-balance-badge__icon {
+  font-size: 0.65em;
+  opacity: 0.8;
+}

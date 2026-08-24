@@ -1,0 +1,228 @@
+.dice-sidebet-modal {
+  padding: 0.25rem 0;
+}
+
+.dice-sidebet-modal__header {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.dice-sidebet-modal__eyebrow {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.7);
+  margin-bottom: 0.35rem;
+}
+
+.dice-sidebet-modal__header h2 {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f5d76e;
+}
+
+.dice-sidebet-modal__player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+}
+
+.dice-sidebet-modal__player span {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dice-sidebet-modal__player strong {
+  font-size: 1rem;
+  color: #f5f0e8;
+}
+
+.dice-sidebet-modal__label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.45rem;
+}
+
+.dice-sidebet-modal__pred-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.dice-sidebet-modal__pred {
+  padding: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #e8d5a3;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dice-sidebet-modal__pred--active {
+  border-color: #e8c547;
+  background: rgba(212, 175, 55, 0.15);
+  color: #f5d76e;
+}
+
+.dice-sidebet-modal__amount {
+  display: block;
+  margin-bottom: 1.25rem;
+}
+
+.dice-sidebet-modal__amount > span {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.35rem;
+}
+
+.dice-sidebet-modal__amount-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 8px;
+}
+
+.dice-sidebet-modal__amount-input span {
+  color: #e8c547;
+  font-weight: 700;
+}
+
+.dice-sidebet-modal__amount-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #f5f0e8;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.dice-sidebet-modal__submit {
+  width: 100%;
+  padding: 0.85rem;
+  font-family: var(--ds-font-display);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #1a0a00;
+  background: linear-gradient(180deg, #ffd700, #b8860b);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.dice-sidebet-modal__reject {
+  width: 100%;
+  padding: 0.75rem;
+  font-weight: 700;
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.25);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.dice-sidebet-modal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.dice-sidebet-modal__actions .dice-sidebet-modal__submit,
+.dice-sidebet-modal__actions .dice-sidebet-modal__reject {
+  width: auto;
+}
+
+.dice-sidebet-modal__copy {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.dice-sidebet-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+  justify-content: center;
+}
+
+.dice-sidebet-modal__chip {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #e8d5a3;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.dice-sidebet-modal__chip--active {
+  border-color: #e8c547;
+  background: rgba(212, 175, 55, 0.18);
+  color: #f5d76e;
+}
+
+.dice-sidebet-modal__set-amt {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #1a0a00;
+  background: linear-gradient(180deg, #ffd700, #b8860b);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dice-sidebet-modal__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.dice-sidebet-modal__error {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.72rem;
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.25);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.dice-sidebet-modal--incoming .dice-sidebet-modal__header {
+  margin-bottom: 0.75rem;
+}

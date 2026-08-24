@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: games-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: games
+      POSTGRES_PASSWORD: games_dev
+      POSTGRES_DB: games_platform
+    volumes:
+      - games_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U games -d games_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  games_postgres_data:

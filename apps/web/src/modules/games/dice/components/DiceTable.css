@@ -1,0 +1,121 @@
+.dice-table-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dice-table-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+
+.dice-table-canvas canvas {
+  display: block !important;
+}
+
+.dice-table-scene--explicit {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dice-table-scene--explicit .dice-table-canvas,
+.dice-table-scene--explicit .dice-table-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.dice-seat-overlay {
+  position: absolute;
+  z-index: 12;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.dice-seat-overlay .dice-seat--clickable {
+  pointer-events: auto;
+}
+
+.dice-seat-overlay--far {
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* Both phone orientations render the same canvas, so seats are sized identically. */
+@media (max-width: 900px) {
+  html.dice-mobile-portrait .dice-seat-overlay .dice-seat,
+  html.dice-mobile-landscape .dice-seat-overlay .dice-seat {
+    max-width: 76px;
+  }
+
+  html.dice-mobile-portrait .dice-seat-overlay .dice-seat__avatar-wrap,
+  html.dice-mobile-landscape .dice-seat-overlay .dice-seat__avatar-wrap {
+    width: clamp(34px, 5cqw, 46px);
+    height: clamp(34px, 5cqw, 46px);
+  }
+
+  html.dice-mobile-portrait .dice-seat-overlay .dice-seat--self .dice-seat__avatar-wrap,
+  html.dice-mobile-landscape .dice-seat-overlay .dice-seat--self .dice-seat__avatar-wrap {
+    width: clamp(40px, 5.8cqw, 52px);
+    height: clamp(40px, 5.8cqw, 52px);
+  }
+
+  html.dice-mobile-portrait .dice-seat-overlay .dice-seat__plate,
+  html.dice-mobile-landscape .dice-seat-overlay .dice-seat__plate {
+    min-width: 58px;
+    max-width: 76px;
+    padding: 0.12rem 0.28rem 0.14rem;
+  }
+
+  html.dice-mobile-portrait .dice-seat-overlay .dice-seat__name,
+  html.dice-mobile-landscape .dice-seat-overlay .dice-seat__name {
+    font-size: 0.44rem;
+  }
+}
+
+.dice-seat-hit {
+  position: absolute;
+  z-index: 120;
+  width: 72px;
+  height: 88px;
+  min-width: 72px;
+  min-height: 88px;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.dice-seat-hit--far {
+  width: 80px;
+  height: 100px;
+  min-width: 80px;
+  min-height: 100px;
+}
+
+@media (max-width: 900px) {
+  html.dice-mobile-landscape .dice-seat-hit,
+  html.dice-mobile-portrait .dice-seat-hit {
+    width: 56px;
+    height: 68px;
+    min-width: 56px;
+    min-height: 68px;
+  }
+
+  html.dice-mobile-landscape .dice-seat-hit--far,
+  html.dice-mobile-portrait .dice-seat-hit--far {
+    width: 62px;
+    height: 76px;
+    min-width: 62px;
+    min-height: 76px;
+  }
+}

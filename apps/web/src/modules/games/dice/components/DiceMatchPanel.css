@@ -1,0 +1,596 @@
+.dice-match-rail {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.dice-match-rail > * {
+  pointer-events: auto;
+}
+
+.dice-match-panel {
+  width: 100%;
+  max-width: 220px;
+  max-height: min(52vh, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.62rem 0.68rem 0.7rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.dice-match-panel__header {
+  flex-shrink: 0;
+}
+
+.dice-match-panel__kicker {
+  margin: 0 0 0.28rem;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #f5d76e;
+}
+
+.dice-match-panel__vs {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.35rem;
+  font-family: var(--ds-font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #f5f0e8;
+  line-height: 1.2;
+}
+
+.dice-match-panel__vs em {
+  font-style: normal;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  color: rgba(212, 175, 55, 0.8);
+}
+
+.dice-match-panel__vs--idle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dice-match-panel__phase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.38rem;
+}
+
+.dice-match-panel__phase strong {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #c4b5fd;
+}
+
+.dice-match-panel__phase span {
+  font-family: var(--ds-font-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.dice-match-panel__track {
+  display: block;
+  height: 3px;
+  margin-top: 0.32rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.dice-match-panel__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f5d76e, #c9a227);
+}
+
+.dice-match-panel__desync {
+  margin: 0.35rem 0 0;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  background: rgba(248, 113, 113, 0.12);
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #fca5a5;
+  letter-spacing: 0.03em;
+}
+
+.dice-match-panel__section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dice-match-panel__section h3 {
+  margin: 0 0 0.32rem;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dice-match-panel__player {
+  padding: 0.35rem 0.4rem;
+  margin-bottom: 0.3rem;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dice-match-panel__player:last-child {
+  margin-bottom: 0;
+}
+
+.dice-match-panel__player-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.dice-match-panel__player-head strong {
+  font-size: 0.72rem;
+  color: #f5f0e8;
+}
+
+.dice-match-panel__badge {
+  flex-shrink: 0;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #1a1020;
+  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  border-radius: 4px;
+  padding: 0.08rem 0.28rem;
+}
+
+.dice-match-panel__badge--opp {
+  color: #fde68a;
+  background: rgba(212, 175, 55, 0.18);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.dice-match-panel__player-state {
+  margin: 0.18rem 0 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: rgba(253, 230, 138, 0.9);
+}
+
+.dice-match-panel__empty {
+  margin: 0;
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dice-match-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  overflow-y: auto;
+}
+
+.dice-match-panel__row {
+  padding: 0.32rem 0.4rem;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dice-match-panel__names {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.3rem;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dice-match-panel__names strong {
+  color: #f5f0e8;
+}
+
+.dice-match-panel__meta {
+  margin: 0.16rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fde68a;
+}
+
+.dice-match-panel__status--pending { color: #fbbf24; }
+.dice-match-panel__status--accepted { color: #86efac; }
+.dice-match-panel__status--rejected,
+.dice-match-panel__status--cancelled { color: #fca5a5; }
+.dice-match-panel__status--won { color: #86efac; }
+.dice-match-panel__status--lost { color: #fca5a5; }
+
+.dice-match-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.28rem;
+  margin-top: 0.32rem;
+}
+
+.dice-match-panel__accept,
+.dice-match-panel__reject {
+  min-height: 26px;
+  padding: 0.16rem 0.3rem;
+  border-radius: 6px;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.dice-match-panel__accept {
+  border: none;
+  color: #1a1020;
+  background: linear-gradient(180deg, #f5d76e, #c9a227);
+}
+
+.dice-match-panel__reject {
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #fca5a5;
+  background: transparent;
+}
+
+.dice-match-panel__accept:disabled,
+.dice-match-panel__reject:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.dice-match-panel__error {
+  margin: 0;
+  font-size: 0.58rem;
+  color: #fca5a5;
+}
+
+.dice-match-rail__actions {
+  width: 100%;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.dice-match-rail__amount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.dice-match-rail__amount span {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dice-match-rail__amount input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  background: rgba(8, 5, 14, 0.72);
+  color: #fde68a;
+  font-family: var(--ds-font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.dice-match-rail__amount input:focus {
+  outline: none;
+  border-color: rgba(245, 215, 110, 0.75);
+}
+
+.dice-match-rail__pao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(8, 5, 14, 0.72);
+  color: #f5f0e8;
+}
+
+.dice-match-rail__pao span {
+  font-family: var(--ds-font-display);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.dice-match-rail__pao em {
+  font-style: normal;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dice-match-rail__pao--on {
+  border-color: #f5d76e;
+  box-shadow: 0 0 14px rgba(245, 215, 110, 0.22);
+}
+
+.dice-match-rail__pao--on em {
+  color: #fde68a;
+}
+
+.dice-match-rail__btn {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  font-family: var(--ds-font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f5f0e8;
+  background: rgba(8, 5, 14, 0.62);
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.dice-match-rail__btn--gold {
+  color: #1a1020;
+  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  border-color: rgba(253, 230, 138, 0.7);
+}
+
+.dice-match-rail__btn--roll {
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e, #15803d);
+  border-color: rgba(134, 239, 172, 0.5);
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.3), 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.dice-match-rail__btn--roll:disabled {
+  background: linear-gradient(180deg, #166534, #14532d);
+  color: rgba(255, 255, 255, 0.5);
+  border-color: rgba(134, 239, 172, 0.2);
+  box-shadow: none;
+}
+
+.dice-match-rail__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dice-match-rail__btn--roll:disabled {
+  opacity: 1;
+}
+
+/*
+ * Phone betting rail. Content is top-aligned in the rail column: the match panel
+ * sizes to its content (scrolling internally when long) and the action buttons
+ * sit directly beneath it.
+ */
+@media (max-width: 900px) {
+  html.dice-mobile-landscape .dice-match-rail,
+  html.dice-mobile-portrait .dice-match-rail {
+    height: 100%;
+    min-height: 0;
+    justify-content: flex-start;
+    gap: 0.4rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel,
+  html.dice-mobile-portrait .dice-match-panel {
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    max-height: 64%;
+    overflow-y: auto;
+    gap: 0.4rem;
+    padding: 0.45rem 0.5rem 0.5rem;
+    border-radius: 9px;
+  }
+
+  html.dice-mobile-landscape .dice-match-rail__actions,
+  html.dice-mobile-portrait .dice-match-rail__actions {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    gap: 0.3rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__kicker,
+  html.dice-mobile-landscape .dice-match-panel__section h3,
+  html.dice-mobile-landscape .dice-match-rail__amount span,
+  html.dice-mobile-portrait .dice-match-panel__kicker,
+  html.dice-mobile-portrait .dice-match-panel__section h3,
+  html.dice-mobile-portrait .dice-match-rail__amount span {
+    font-size: 0.47rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__vs,
+  html.dice-mobile-portrait .dice-match-panel__vs {
+    font-size: 0.72rem;
+    gap: 0.12rem 0.24rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__player,
+  html.dice-mobile-portrait .dice-match-panel__player {
+    padding: 0.26rem 0.32rem;
+    margin-bottom: 0.24rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__player-head,
+  html.dice-mobile-portrait .dice-match-panel__player-head {
+    gap: 0.25rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__player-head strong,
+  html.dice-mobile-portrait .dice-match-panel__player-head strong {
+    font-size: 0.62rem;
+    line-height: 1.15;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__badge,
+  html.dice-mobile-portrait .dice-match-panel__badge {
+    font-size: 0.4rem;
+    padding: 0.06rem 0.2rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-panel__player-state,
+  html.dice-mobile-landscape .dice-match-panel__empty,
+  html.dice-mobile-portrait .dice-match-panel__player-state,
+  html.dice-mobile-portrait .dice-match-panel__empty {
+    font-size: 0.54rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-rail__btn,
+  html.dice-mobile-portrait .dice-match-rail__btn {
+    min-height: 42px;
+    padding: 0.3rem 0.35rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    touch-action: manipulation;
+  }
+
+  html.dice-mobile-landscape .dice-match-rail__pao,
+  html.dice-mobile-landscape .dice-match-rail__amount input,
+  html.dice-mobile-landscape .dice-match-panel__accept,
+  html.dice-mobile-landscape .dice-match-panel__reject,
+  html.dice-mobile-portrait .dice-match-rail__pao,
+  html.dice-mobile-portrait .dice-match-rail__amount input,
+  html.dice-mobile-portrait .dice-match-panel__accept,
+  html.dice-mobile-portrait .dice-match-panel__reject {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+
+  html.dice-mobile-landscape .dice-match-rail__pao,
+  html.dice-mobile-portrait .dice-match-rail__pao {
+    padding: 0.3rem 0.45rem;
+  }
+
+  html.dice-mobile-landscape .dice-match-rail__amount input,
+  html.dice-mobile-portrait .dice-match-rail__amount input {
+    padding: 0.28rem 0.45rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 640px) and (orientation: landscape) {
+  .dice-match-panel {
+    padding: 0.42rem 0.46rem 0.5rem;
+  }
+
+  .dice-match-panel__kicker,
+  .dice-match-panel__section h3,
+  .dice-match-rail__amount span {
+    font-size: 0.48rem;
+  }
+
+  .dice-match-panel__vs {
+    font-size: 0.7rem;
+    gap: 0.16rem 0.26rem;
+  }
+
+  .dice-match-panel__phase {
+    margin-top: 0.28rem;
+  }
+
+  .dice-match-panel__phase strong {
+    font-size: 0.5rem;
+  }
+
+  .dice-match-panel__phase span {
+    font-size: 0.66rem;
+  }
+
+  .dice-match-panel__player,
+  .dice-match-panel__row {
+    padding: 0.26rem 0.3rem;
+  }
+
+  .dice-match-panel__player-head strong {
+    font-size: 0.64rem;
+  }
+
+  .dice-match-panel__badge {
+    font-size: 0.42rem;
+    padding: 0.07rem 0.22rem;
+  }
+
+  .dice-match-panel__player-state,
+  .dice-match-panel__names {
+    font-size: 0.56rem;
+  }
+
+  .dice-match-panel__meta,
+  .dice-match-panel__error,
+  .dice-match-panel__empty {
+    font-size: 0.52rem;
+  }
+
+  .dice-match-panel__actions {
+    gap: 0.24rem;
+  }
+
+  .dice-match-panel__accept,
+  .dice-match-panel__reject,
+  .dice-match-rail__amount input,
+  .dice-match-rail__pao,
+  .dice-match-rail__btn {
+    min-height: 36px;
+  }
+
+  .dice-match-rail__amount input {
+    padding: 0.28rem 0.48rem;
+    font-size: 0.92rem;
+  }
+
+  .dice-match-rail__pao {
+    padding: 0.3rem 0.48rem;
+  }
+
+  .dice-match-rail__pao em {
+    font-size: 0.52rem;
+  }
+
+  .dice-match-rail__btn {
+    padding: 0.34rem 0.45rem;
+    font-size: 0.64rem;
+  }
+}

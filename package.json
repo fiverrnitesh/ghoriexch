@@ -1,0 +1,41 @@
+{
+  "name": "games-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "node scripts/ensure-dev-ports.mjs && concurrently -n api,web,admin -c blue,magenta,yellow \"npm run dev -w @games/api\" \"npm run dev -w @games/web\" \"npm run dev -w @games/admin\"",
+    "dev:api": "npm run dev -w @games/api",
+    "dev:web": "npm run dev -w @games/web",
+    "dev:admin": "npm run dev -w @games/admin",
+    "build": "npm run build -w @games/shared && npm run build -w @games/game-engine && npm run build -w @games/api && npm run build -w @games/web && npm run build -w @games/admin",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset --force",
+    "test:dice": "tsx --test packages/game-engine/src/games/dice/dice.logic.test.ts packages/game-engine/src/games/dice/dice.engine.test.ts packages/game-engine/src/games/dice/dice.state-machine.test.ts packages/game-engine/src/games/dice/dice.turn-timer.test.ts packages/game-engine/src/games/dice/dice.timeout.engine.test.ts packages/game-engine/src/games/dice/dice.final-rules.test.ts apps/web/src/modules/games/dice/utils/turnCountdown.test.ts apps/web/src/modules/games/dice/dice-lobby.norooms.test.ts",
+    "test:dice:integration": "tsx --test --test-concurrency=1 apps/api/src/modules/dice/dice.integration.test.ts apps/api/src/modules/dice/dice-matchmaking.integration.test.ts",
+    "lint": "npm run lint -ws --if-present"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.8.2",
+    "@types/node": "^22.15.29",
+    "bcryptjs": "^3.0.2",
+    "concurrently": "^9.1.2",
+    "prisma": "^6.8.2",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

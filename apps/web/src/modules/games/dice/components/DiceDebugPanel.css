@@ -1,0 +1,31 @@
+.dice-debug {
+  max-width: 100%;
+  margin: 0.5rem auto 0;
+}
+
+.dice-debug__toggle {
+  width: 100%;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: left;
+  color: #86efac;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px dashed rgba(134, 239, 172, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dice-debug__body {
+  margin: 0.35rem 0 0;
+  padding: 0.65rem;
+  font-size: 0.58rem;
+  line-height: 1.45;
+  color: #bbf7d0;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 8px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

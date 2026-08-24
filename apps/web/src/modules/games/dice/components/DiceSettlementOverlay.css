@@ -1,0 +1,212 @@
+.dice-settlement-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(18, 8, 4, 0.38) 0%, transparent 68%);
+}
+
+.dice-settlement-overlay--in {
+  animation: dice-settle-in 0.38s ease-out both;
+}
+
+.dice-settlement-overlay--out {
+  animation: dice-settle-out 0.5s ease-in both;
+}
+
+.dice-settlement-overlay__burst {
+  position: absolute;
+  width: min(280px, 50vw);
+  height: min(180px, 28vh);
+  pointer-events: none;
+}
+
+.dice-settlement-overlay__spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #f5d76e;
+  box-shadow: 0 0 8px rgba(245, 215, 110, 0.9);
+  opacity: 0;
+}
+
+.dice-settlement-overlay--won .dice-settlement-overlay__spark {
+  animation: dice-spark 1.1s ease-out both;
+}
+
+.dice-settlement-overlay__spark--0 { --dx: -92px; --dy: -48px; animation-delay: 0.05s; }
+.dice-settlement-overlay__spark--1 { --dx: 78px; --dy: -56px; animation-delay: 0.12s; }
+.dice-settlement-overlay__spark--2 { --dx: -70px; --dy: 42px; animation-delay: 0.18s; }
+.dice-settlement-overlay__spark--3 { --dx: 96px; --dy: 28px; animation-delay: 0.08s; }
+.dice-settlement-overlay__spark--4 { --dx: 0px; --dy: -72px; animation-delay: 0.22s; }
+.dice-settlement-overlay__spark--5 { --dx: -40px; --dy: 62px; animation-delay: 0.28s; }
+.dice-settlement-overlay__spark--6 { --dx: 48px; --dy: 58px; animation-delay: 0.16s; }
+.dice-settlement-overlay__spark--7 { --dx: -110px; --dy: 8px; animation-delay: 0.3s; }
+
+.dice-settlement-overlay__ribbon {
+  position: relative;
+  min-width: min(240px, 72vw);
+  padding: 0.85rem 1.7rem 0.95rem;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(28, 16, 8, 0.96) 0%, rgba(10, 6, 16, 0.96) 100%);
+  border: 1px solid rgba(245, 215, 110, 0.55);
+  border-radius: 12px;
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    0 0 28px rgba(212, 175, 55, 0.22),
+    inset 0 1px 0 rgba(255, 248, 210, 0.18);
+}
+
+.dice-settlement-overlay--won .dice-settlement-overlay__ribbon {
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    0 0 36px rgba(245, 215, 110, 0.38),
+    inset 0 1px 0 rgba(255, 248, 210, 0.22);
+}
+
+.dice-settlement-overlay--lost .dice-settlement-overlay__ribbon {
+  border-color: rgba(212, 175, 55, 0.28);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+.dice-settlement-overlay__label {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: #fde68a;
+}
+
+.dice-settlement-overlay--lost .dice-settlement-overlay__label {
+  color: rgba(253, 230, 138, 0.7);
+}
+
+.dice-settlement-overlay__winner {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.05rem, 3vw, 1.45rem);
+  color: #fff;
+}
+
+.dice-settlement-overlay__result {
+  margin: 0.28rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(245, 215, 110, 0.85);
+}
+
+.dice-settlement-overlay__personal {
+  margin: 0.28rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.dice-settlement-overlay__personal--won {
+  color: #f5d76e;
+}
+
+.dice-settlement-overlay__personal--lost {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.dice-settlement-overlay__meta {
+  margin: 0.3rem 0 0;
+  font-size: 0.55rem;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes dice-settle-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dice-settle-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes dice-spark {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2);
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .dice-settlement-overlay__burst {
+    width: min(220px, 58vw);
+    height: min(144px, 24vh);
+  }
+
+  .dice-settlement-overlay__ribbon {
+    min-width: min(220px, 84vw);
+    padding: 0.72rem 1.1rem 0.78rem;
+  }
+}
+
+@media (max-width: 640px) and (orientation: landscape) {
+  .dice-settlement-overlay__burst {
+    width: min(180px, 62vw);
+    height: min(120px, 20vh);
+  }
+
+  .dice-settlement-overlay__ribbon {
+    min-width: min(200px, 88vw);
+    padding: 0.58rem 0.8rem 0.64rem;
+    border-radius: 10px;
+  }
+
+  .dice-settlement-overlay__label {
+    font-size: 0.48rem;
+    letter-spacing: 0.16em;
+  }
+
+  .dice-settlement-overlay__winner {
+    font-size: clamp(0.88rem, 5vw, 1.15rem);
+  }
+
+  .dice-settlement-overlay__result {
+    margin-top: 0.2rem;
+    font-size: 0.56rem;
+  }
+
+  .dice-settlement-overlay__personal {
+    margin-top: 0.2rem;
+    font-size: 0.62rem;
+  }
+
+  .dice-settlement-overlay__meta {
+    font-size: 0.5rem;
+  }
+}

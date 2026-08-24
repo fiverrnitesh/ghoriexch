@@ -1,0 +1,57 @@
+.ds-player-card {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--ds-border-subtle);
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+  transition: border-color var(--ds-transition-fast), background var(--ds-transition-fast);
+}
+
+button.ds-player-card {
+  cursor: pointer;
+}
+
+button.ds-player-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ds-border);
+}
+
+.ds-player-card--highlight {
+  border-color: var(--ds-border-gold);
+  background: rgba(245, 200, 66, 0.04);
+}
+
+.ds-player-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ds-player-card__name {
+  font-weight: 700;
+  font-size: var(--ds-text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ds-player-card__subtitle {
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
+}
+
+.ds-player-card__balance {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-sm);
+  font-weight: 700;
+  color: var(--ds-gold);
+}

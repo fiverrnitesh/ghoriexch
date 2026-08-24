@@ -1,0 +1,35 @@
+.sandbox-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-space-3);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  margin-bottom: var(--ds-space-5);
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.04));
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.sandbox-banner__badge {
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--ds-radius-xs);
+  background: var(--ds-warning);
+  color: #1a0a00;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.sandbox-banner__text strong {
+  display: block;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-warning);
+  margin-bottom: 2px;
+}
+
+.sandbox-banner__text p {
+  margin: 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+}

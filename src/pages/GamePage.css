@@ -1,0 +1,33 @@
+.game-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.game-page--fallback {
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.game-page__back {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e5e7eb;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.game-page__back:hover {
+  background: rgba(0, 0, 0, 0.65);
+  color: #fde68a;
+}

@@ -1,0 +1,53 @@
+.ds-countdown {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: var(--ds-space-2) var(--ds-space-4);
+  border-radius: var(--ds-radius-md);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--ds-border);
+  box-shadow: var(--ds-shadow-inset);
+}
+
+.ds-countdown__label {
+  font-size: var(--ds-text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ds-tracking-wider);
+  color: var(--ds-text-secondary);
+}
+
+.ds-countdown__time {
+  font-family: var(--ds-font-display);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ds-text-primary);
+}
+
+.ds-countdown--sm .ds-countdown__time { font-size: var(--ds-text-base); }
+.ds-countdown--md .ds-countdown__time { font-size: var(--ds-text-xl); }
+.ds-countdown--lg .ds-countdown__time { font-size: var(--ds-text-2xl); }
+
+.ds-countdown--gold {
+  border-color: var(--ds-border-gold);
+  background: rgba(245, 200, 66, 0.06);
+}
+
+.ds-countdown--gold .ds-countdown__time {
+  color: var(--ds-gold);
+  text-shadow: 0 0 12px var(--ds-gold-glow);
+}
+
+.ds-countdown--urgent {
+  border-color: rgba(239, 68, 68, 0.5);
+  animation: ds-pulse-urgent 1s ease infinite;
+}
+
+.ds-countdown--urgent .ds-countdown__time {
+  color: var(--ds-danger);
+}
+
+@keyframes ds-pulse-urgent {
+  0%, 100% { box-shadow: var(--ds-shadow-inset); }
+  50% { box-shadow: var(--ds-shadow-inset), 0 0 12px var(--ds-danger-glow); }
+}

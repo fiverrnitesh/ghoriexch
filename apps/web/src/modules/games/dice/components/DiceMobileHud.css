@@ -1,0 +1,105 @@
+.dice-mobile-hud {
+  display: none;
+}
+
+/*
+ * Phone header bar. It spans the full width of the landscape surface — including
+ * over the betting rail — and the rail reserves top padding to clear it.
+ */
+@media (max-width: 900px) {
+  html.dice-mobile-landscape .dice-mobile-hud,
+  html.dice-mobile-portrait .dice-mobile-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 22;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 34px;
+    padding: 0 0.5rem 0 0.45rem;
+    box-sizing: border-box;
+    background: linear-gradient(180deg, rgba(8, 5, 14, 0.94) 0%, rgba(8, 5, 14, 0.78) 100%);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+    backdrop-filter: blur(6px);
+    pointer-events: auto;
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__brand,
+  html.dice-mobile-portrait .dice-mobile-hud__brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    flex-shrink: 0;
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__mark,
+  html.dice-mobile-portrait .dice-mobile-hud__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #f5d76e, #c9a227);
+    color: #1a1020;
+    font-size: 0.5rem;
+    font-weight: 900;
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__nav,
+  html.dice-mobile-portrait .dice-mobile-hud__nav {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__link,
+  html.dice-mobile-portrait .dice-mobile-hud__link {
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    color: rgba(245, 240, 232, 0.72);
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__actions,
+  html.dice-mobile-portrait .dice-mobile-hud__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__user,
+  html.dice-mobile-portrait .dice-mobile-hud__user {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: rgba(245, 240, 232, 0.82);
+    white-space: nowrap;
+    max-width: 68px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  html.dice-mobile-landscape .dice-mobile-hud__logout,
+  html.dice-mobile-portrait .dice-mobile-hud__logout {
+    padding: 0.16rem 0.42rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    background: transparent;
+    color: #f5f0e8;
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+}

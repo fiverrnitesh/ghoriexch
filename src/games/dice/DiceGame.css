@@ -1,0 +1,51 @@
+.dice-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dice-center__pair {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dice-center--rolling .table-die {
+  animation: table-shake 0.6s ease-in-out;
+}
+
+.table-die {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #ffffff, #d1d5db);
+  color: #111827;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.dice-center__total {
+  margin: 0;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fde68a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@keyframes table-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-10deg) translateY(-3px);
+  }
+  75% {
+    transform: rotate(10deg) translateY(3px);
+  }
+}

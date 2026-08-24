@@ -1,0 +1,159 @@
+.game-tile-link {
+  flex: 0 0 168px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.game-tile-link--disabled {
+  cursor: not-allowed;
+}
+
+.game-tile {
+  position: relative;
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.game-tile-link:not(.game-tile-link--disabled):hover .game-tile {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.game-tile--soon {
+  opacity: 0.85;
+}
+
+.game-tile__players {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.game-tile__players-icon {
+  font-size: 0.65rem;
+  opacity: 0.9;
+}
+
+.game-tile__visual {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.game-tile__emoji {
+  font-size: 4rem;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+}
+
+.game-tile__footer {
+  position: relative;
+  z-index: 1;
+  padding: 2.5rem 0.75rem 0.85rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82), transparent);
+  text-align: center;
+}
+
+.game-tile__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.game-tile__provider {
+  margin: 0.2rem 0 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+}
+
+.game-tile__badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fde68a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* Theme backgrounds */
+.game-tile--sic-bo {
+  background: linear-gradient(160deg, #7f1d1d 0%, #450a0a 50%, #1c1917 100%);
+}
+
+.game-tile--dragon-tiger {
+  background: linear-gradient(160deg, #065f46 0%, #064e3b 50%, #14532d 100%);
+}
+
+.game-tile--aero {
+  background: linear-gradient(160deg, #be185d 0%, #831843 50%, #4c0519 100%);
+}
+
+.game-tile--chicken {
+  background: linear-gradient(160deg, #ca8a04 0%, #a16207 50%, #713f12 100%);
+}
+
+.game-tile--teen-patti {
+  background: linear-gradient(160deg, #166534 0%, #14532d 50%, #052e16 100%);
+}
+
+.game-tile--teen-patti-gold {
+  background: linear-gradient(160deg, #92400e 0%, #78350f 50%, #451a03 100%);
+}
+
+.game-tile--bollywood {
+  background: linear-gradient(160deg, #6b21a8 0%, #581c87 50%, #3b0764 100%);
+}
+
+.game-tile--cards-32 {
+  background: linear-gradient(160deg, #1e40af 0%, #1e3a8a 50%, #172554 100%);
+}
+
+.game-tile--ludo {
+  background: linear-gradient(160deg, #c2410c 0%, #9a3412 50%, #431407 100%);
+}
+
+.game-tile--aviator {
+  background: linear-gradient(160deg, #dc2626 0%, #991b1b 50%, #450a0a 100%);
+}
+
+.game-tile--mines {
+  background: linear-gradient(160deg, #475569 0%, #334155 50%, #1e293b 100%);
+}
+
+@media (max-width: 640px) {
+  .game-tile-link {
+    flex: 0 0 148px;
+  }
+
+  .game-tile {
+    height: 200px;
+  }
+}

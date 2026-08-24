@@ -1,0 +1,621 @@
+/* ─── Fullscreen dice game viewport ─── */
+
+html.dice-game-active,
+html.dice-game-active body {
+  overflow: hidden;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+html.dice-game-active .ds-app-shell {
+  min-height: 100dvh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+html.dice-game-active .ds-app-shell__main {
+  flex: 1;
+  min-height: 0;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+html.dice-game-active .ds-app-shell__footer,
+html.dice-game-active .ds-mobile-nav {
+  display: none !important;
+}
+
+html.dice-game-active .ds-header__inner {
+  height: 44px;
+}
+
+html.dice-game-active .ds-header__logo-text {
+  font-size: 0.92rem;
+}
+
+html.dice-game-active .ds-app-shell__main {
+  padding-bottom: 0;
+}
+
+.dice-game-viewport {
+  position: relative;
+  container-type: size;
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(140, 28, 48, 0.22) 0%, transparent 58%),
+    radial-gradient(ellipse 90% 70% at 50% 100%, rgba(18, 6, 32, 0.95) 0%, #07040c 100%),
+    repeating-linear-gradient(45deg, rgba(88, 30, 120, 0.07) 0 12px, transparent 12px 24px),
+    repeating-linear-gradient(-45deg, rgba(46, 8, 84, 0.08) 0 12px, transparent 12px 24px),
+    #12081a;
+}
+
+.dice-game-viewport__play {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.dice-game-viewport__stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dice-game-viewport__side {
+  position: absolute;
+  right: 0.7rem;
+  top: 7%;
+  width: min(220px, 20vw);
+  max-width: 220px;
+  max-height: 86%;
+  overflow: auto;
+  padding: 0;
+  background: transparent;
+  z-index: 16;
+  pointer-events: none;
+}
+
+.dice-game-viewport__side > * {
+  pointer-events: auto;
+}
+
+.dice-game-viewport__hud {
+  position: absolute;
+  top: 0.45rem;
+  left: 0.55rem;
+  z-index: 18;
+}
+
+.dice-game-viewport__dock {
+  position: absolute;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: 0.45rem;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.dice-game-viewport__dock > * {
+  pointer-events: auto;
+}
+
+.dice-game-viewport__rotate-overlay {
+  display: none;
+}
+
+.dice-game-viewport__rotate-card {
+  text-align: center;
+  max-width: 320px;
+}
+
+.dice-game-viewport__rotate-icon {
+  display: block;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #f5d76e;
+}
+
+.dice-game-viewport__rotate-card h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--ds-font-display);
+  color: #f5f0e8;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dice-game-viewport__rotate-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dice-game-viewport__table-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  container-type: size;
+  container-name: dice-arena;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.dice-game-viewport__float-banners {
+  position: absolute;
+  top: 0.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: min(520px, 92%);
+  pointer-events: none;
+}
+
+.dice-game-viewport__float-banners > * {
+  pointer-events: auto;
+  width: 100%;
+}
+
+.dice-game-viewport__dev {
+  position: fixed;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: min(360px, 90vw);
+  pointer-events: none;
+}
+
+.dice-game-viewport__dev > * {
+  pointer-events: auto;
+}
+
+.dice-game-viewport__pending-bets {
+  margin-top: 0.35rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(10, 6, 16, 0.9);
+  color: #f5d76e;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.dice-game-viewport__pending-bets:hover {
+  filter: brightness(1.08);
+}
+
+.dice-test-banner,
+.dice-status-banner,
+.dice-friends-admission {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.dice-lobby {
+  padding: 2rem;
+  max-width: 720px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.dice-test-banner {
+  padding: 0.35rem 0.55rem;
+  text-align: center;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 6px;
+  color: #fbbf24;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.62rem;
+}
+
+.dice-lobby h1 {
+  font-family: var(--ds-font-display);
+  color: var(--ds-gold);
+  margin-bottom: 0.5rem;
+}
+
+.dice-lobby__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.dice-lobby__create {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 420px;
+  margin: 0 auto 1rem;
+  text-align: left;
+}
+
+.dice-lobby__field {
+  display: block;
+}
+
+.dice-lobby__field input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  box-sizing: border-box;
+}
+
+.dice-lobby__field-label,
+.dice-lobby__mode .dice-lobby__field-label {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.dice-lobby__mode-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.dice-lobby__mode-btn {
+  padding: 0.65rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dice-lobby__mode-btn--active {
+  border-color: rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f5d76e;
+}
+
+.dice-lobby__empty {
+  color: var(--ds-text-secondary);
+  padding: 1.5rem 0;
+}
+
+.dice-lobby__room-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.dice-lobby__room-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.dice-lobby__room-meta {
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+}
+
+.dice-lobby__message {
+  margin-top: 0.75rem;
+  color: #86efac;
+}
+
+.dice-lobby__sim {
+  margin-top: 1.5rem;
+}
+
+.dice-lobby__sim-card {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1rem 1.15rem;
+  text-align: left;
+  border: 1px dashed rgba(212, 175, 55, 0.65);
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.dice-lobby__sim-title {
+  font-weight: 700;
+  color: #f5d76e;
+  letter-spacing: 0.03em;
+}
+
+.dice-lobby__sim-meta {
+  margin-top: 0.25rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.85rem;
+}
+
+.dice-lobby__sim-join {
+  margin-top: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.7);
+  background: rgba(212, 175, 55, 0.18);
+  color: #f5d76e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dice-lobby__sim-join:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.dice-lobby__tables {
+  margin-top: 2rem;
+}
+
+.dice-status-banner {
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.62rem;
+}
+
+.dice-status-banner--turn_timeout {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+.dice-status-banner--auto_roll {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fcd34d;
+}
+
+.dice-status-banner--rotation {
+  background: rgba(134, 239, 172, 0.1);
+  border: 1px solid rgba(134, 239, 172, 0.3);
+  color: #86efac;
+}
+
+.dice-friends-admission {
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.dice-friends-admission ul {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.dice-friends-admission li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dice-friends-admission__reject {
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .dice-game-viewport__dev {
+    right: 0.3rem;
+    bottom: 0.3rem;
+    max-width: min(320px, calc(100vw - 0.6rem));
+  }
+}
+
+/* Mobile portrait — JS shell (DiceMobileShell) sets explicit pixel dimensions + rotate */
+@media (max-width: 900px) {
+  html.dice-mobile-portrait .ds-header,
+  html.dice-mobile-portrait .ds-mobile-nav,
+  html.dice-mobile-portrait .ds-app-shell__footer {
+    display: none !important;
+  }
+
+  html.dice-mobile-portrait .ds-app-shell,
+  html.dice-mobile-portrait .ds-app-shell__main {
+    height: 100dvh;
+    height: 100svh;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport--mobile-rotate {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    height: 100svh;
+    overflow: hidden;
+    touch-action: manipulation;
+    z-index: 20;
+    background: #12081a;
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport--mobile-rotate .dice-game-viewport__play {
+    /* transform + pixel size from DiceMobileShell inline styles */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport--mobile-rotate .dice-game-viewport__play > * {
+    pointer-events: auto;
+  }
+
+  html.dice-mobile-rotate-active .ds-app-shell__footer {
+    display: none !important;
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport--mobile-rotate .dice-game-viewport__dev {
+    right: max(0.35rem, env(safe-area-inset-right));
+    bottom: max(0.35rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile landscape — driven by html.dice-mobile-landscape (JS), not orientation media queries */
+@media (max-width: 900px) {
+  html.dice-mobile-landscape .ds-header,
+  html.dice-mobile-landscape .ds-mobile-nav,
+  html.dice-mobile-landscape .ds-app-shell__footer {
+    display: none !important;
+  }
+
+  html.dice-mobile-landscape .ds-app-shell,
+  html.dice-mobile-landscape .ds-app-shell__main {
+    height: 100dvh;
+    height: 100svh;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-landscape .dice-game-viewport,
+  html.dice-mobile-landscape .dice-game-viewport--mobile-landscape {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    width: 100svw;
+    height: 100dvh;
+    height: 100svh;
+    padding:
+      env(safe-area-inset-top)
+      env(safe-area-inset-right)
+      env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  html.dice-mobile-landscape .dice-game-viewport__play {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-landscape .dice-game-viewport__dev {
+    right: max(0.35rem, env(safe-area-inset-right));
+    bottom: max(0.35rem, env(safe-area-inset-bottom));
+  }
+}
+
+/*
+ * Shared mobile stage: the landscape surface is a table column plus a fixed
+ * betting rail on its right. Portrait renders the very same surface and simply
+ * rotates it 90°, so both modes use identical rules here.
+ */
+@media (max-width: 900px) {
+  html.dice-mobile-portrait .dice-game-viewport__stage--split,
+  html.dice-mobile-landscape .dice-game-viewport__stage--split {
+    flex-direction: row;
+    align-items: stretch;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport__stage--split .dice-game-viewport__table-wrap,
+  html.dice-mobile-landscape .dice-game-viewport__stage--split .dice-game-viewport__table-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    width: auto;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport__stage--split .dice-game-viewport__side,
+  html.dice-mobile-landscape .dice-game-viewport__stage--split .dice-game-viewport__side {
+    position: relative;
+    inset: auto;
+    flex: 0 0 var(--dice-rail-w, 176px);
+    width: var(--dice-rail-w, 176px);
+    max-width: var(--dice-rail-w, 176px);
+    height: 100%;
+    max-height: none;
+    box-sizing: border-box;
+    /* Top padding clears the HUD bar, which spans the full surface width. */
+    padding: 2.35rem 0.4rem 0.4rem 0.35rem;
+    overflow: hidden;
+    z-index: 16;
+    pointer-events: none;
+    border-left: 1px solid rgba(212, 175, 55, 0.16);
+    background: linear-gradient(90deg, rgba(6, 4, 10, 0.2) 0%, rgba(6, 4, 10, 0.5) 100%);
+  }
+
+  html.dice-mobile-portrait .dice-game-viewport__stage--split .dice-game-viewport__side > *,
+  html.dice-mobile-landscape .dice-game-viewport__stage--split .dice-game-viewport__side > * {
+    pointer-events: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .dice-lobby {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) and (orientation: landscape) {
+  .dice-game-viewport__float-banners {
+    top: 0.18rem;
+    width: min(520px, calc(100% - 0.5rem));
+  }
+
+  .dice-game-viewport__pending-bets {
+    padding: 0.26rem 0.55rem;
+    font-size: 0.56rem;
+  }
+}

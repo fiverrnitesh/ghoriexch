@@ -1,0 +1,112 @@
+.dice-dev-controls {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0.75rem auto 0;
+}
+
+.dice-dev-controls__toggle {
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: left;
+  color: #c4b5fd;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(167, 139, 250, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dice-dev-controls__panel {
+  margin-top: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px dashed rgba(167, 139, 250, 0.35);
+}
+
+.dice-dev-controls__test-as {
+  margin-bottom: 0.75rem;
+}
+
+.dice-dev-controls__test-as > span {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #c4b5fd;
+  margin-bottom: 0.4rem;
+}
+
+.dice-dev-controls__test-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.dice-dev-controls__test-grid button {
+  padding: 0.3rem 0.45rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #ede9fe;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dice-dev-controls__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 0.45rem;
+}
+
+.dice-dev-controls__grid button {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ede9fe;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dice-dev-controls__grid button:hover:not(:disabled) {
+  border-color: rgba(167, 139, 250, 0.6);
+}
+
+.dice-dev-controls__grid button:disabled {
+  opacity: 0.5;
+}
+
+.dice-dev-controls__primary {
+  grid-column: 1 / -1;
+  border-color: rgba(250, 204, 21, 0.55) !important;
+  color: #fef3c7 !important;
+  background: rgba(120, 80, 10, 0.45) !important;
+}
+
+.dice-dev-controls--play {
+  margin: 0;
+  max-width: 100%;
+}
+
+.dice-dev-controls--play .dice-dev-controls__panel {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+}
+
+.dice-dev-controls__debug {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #e8dcc8;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}

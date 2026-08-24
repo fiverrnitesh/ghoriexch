@@ -1,0 +1,94 @@
+.ds-player-seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-space-2);
+  z-index: 3;
+}
+
+/* Position map for oval table */
+.ds-player-seat--top-left { top: 12%; left: 8%; }
+.ds-player-seat--top { top: 2%; left: 50%; transform: translateX(-50%); }
+.ds-player-seat--top-right { top: 12%; right: 8%; }
+.ds-player-seat--left { top: 42%; left: 2%; }
+.ds-player-seat--right { top: 42%; right: 2%; }
+.ds-player-seat--bottom-left { bottom: 12%; left: 12%; }
+.ds-player-seat--bottom { bottom: 4%; left: 50%; transform: translateX(-50%); }
+.ds-player-seat--bottom-right { bottom: 12%; right: 12%; }
+
+.ds-player-seat--self .ds-player-seat__row {
+  flex-direction: column;
+}
+
+.ds-player-seat__row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+}
+
+.ds-player-seat__info {
+  min-width: 80px;
+  padding: var(--ds-space-1) var(--ds-space-2);
+  border-radius: var(--ds-radius-sm);
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--ds-border-subtle);
+  text-align: center;
+}
+
+.ds-player-seat--active .ds-player-seat__info {
+  border-color: var(--ds-border-gold);
+  box-shadow: 0 0 8px var(--ds-gold-glow);
+}
+
+.ds-player-seat__name {
+  display: block;
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ds-player-seat__balance {
+  display: block;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-gold);
+  font-weight: 600;
+}
+
+.ds-player-seat__status-label {
+  display: block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ds-purple);
+  margin-top: 2px;
+}
+
+.ds-player-seat__content {
+  display: flex;
+  gap: var(--ds-space-1);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ds-player-seat__ribbon {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.85rem;
+  background: linear-gradient(180deg, var(--ds-purple), #3b0764);
+  border: 2px solid var(--ds-gold-dim);
+  border-radius: var(--ds-radius-xs);
+  color: var(--ds-gold);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: var(--ds-shadow-sm);
+}
+
+@media (max-width: 720px) {
+  .ds-player-seat__info { min-width: 68px; }
+}

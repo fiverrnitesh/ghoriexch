@@ -1,0 +1,357 @@
+.dice-info-panel {
+  width: 100%;
+  min-width: 0;
+  max-width: 280px;
+  box-sizing: border-box;
+  padding: clamp(0.55rem, 1.5vh, 1.1rem);
+  background: linear-gradient(165deg, rgba(25, 18, 40, 0.95) 0%, rgba(12, 8, 22, 0.98) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.45rem, 1.2vh, 1rem);
+}
+
+.dice-info-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dice-info-panel__title {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e8c547;
+  text-transform: uppercase;
+}
+
+.dice-info-panel__round {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.dice-info-panel__section h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dice-info-panel__match-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.85rem 0.65rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.dice-info-panel__match-name {
+  font-family: var(--ds-font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f5f0e8;
+}
+
+.dice-info-panel__match-vs {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: rgba(212, 175, 55, 0.65);
+  letter-spacing: 0.2em;
+}
+
+.dice-info-panel__match-holder {
+  margin-top: 0.35rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f5d76e;
+}
+
+.dice-info-panel__role {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-align: center;
+  border-radius: 6px;
+}
+
+.dice-info-panel__role--spectator {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.dice-info-panel__role--active {
+  color: #1a0a00;
+  background: linear-gradient(180deg, #ffd700, #c9a227);
+}
+
+.dice-info-panel__matchup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dice-info-panel__player {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.35rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dice-info-panel__player-label {
+  display: block;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 0.15rem;
+}
+
+.dice-info-panel__player strong {
+  display: block;
+  font-size: 0.82rem;
+  color: #f5f0e8;
+}
+
+.dice-info-panel__tag {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #f5d76e;
+}
+
+.dice-info-panel__vs {
+  font-family: var(--ds-font-display);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.dice-info-panel__waiting {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.dice-info-panel__phase {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.15);
+  border-radius: 6px;
+}
+
+.dice-info-panel__meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dice-info-panel__section--timer {
+  display: flex;
+  justify-content: center;
+}
+
+.dice-info-panel__sidebets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dice-info-panel__sidebets li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.68rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+}
+
+.dice-info-panel__sb-status {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dice-info-panel__sb-status--pending { color: #fbbf24; }
+.dice-info-panel__sb-status--accepted { color: #86efac; }
+.dice-info-panel__sb-status--rejected,
+.dice-info-panel__sb-status--cancelled { color: #fca5a5; }
+
+.dice-info-panel__review-btn {
+  width: 100%;
+  padding: 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1a1020;
+  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dice-info-panel__players-count {
+  margin-top: auto;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.dice-info-panel__holder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.55rem 0.65rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.dice-info-panel__holder strong {
+  font-family: var(--ds-font-display);
+  font-size: 0.82rem;
+  color: #f5f0e8;
+}
+
+.dice-info-panel__holder-choice {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #f5d76e;
+  letter-spacing: 0.04em;
+}
+
+.dice-info-panel__player-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.dice-info-panel__player-total {
+  font-family: var(--ds-font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f5f0e8;
+}
+
+.dice-info-panel__player-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dice-info-panel__player-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dice-info-panel__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dice-info-panel__dot--active { background: #86efac; }
+.dice-info-panel__dot--spectator { background: rgba(255, 255, 255, 0.35); }
+.dice-info-panel__dot--bot { background: #c4b5fd; }
+
+.dice-info-panel__section--limits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.dice-info-panel__limit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.dice-info-panel__limit strong {
+  font-size: 0.78rem;
+  color: #e8c547;
+}
+
+.dice-info-panel__banner {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dice-info-panel__banner--turn_timeout {
+  background: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
+}
+
+.dice-info-panel__banner--auto_roll {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fcd34d;
+}
+
+.dice-info-panel__banner--rotation {
+  background: rgba(134, 239, 172, 0.08);
+  color: #86efac;
+}
+
+.dice-info-panel__role-tag {
+  display: block;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.15rem;
+}
+
+@media (max-width: 960px) {
+  .dice-info-panel {
+    max-width: 100%;
+  }
+}

@@ -1,0 +1,75 @@
+.lobby-hero {
+  margin-bottom: var(--ds-space-8);
+  padding: var(--ds-space-10) var(--ds-space-6);
+  overflow: hidden;
+  position: relative;
+}
+
+.lobby-hero__glow {
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--ds-red-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.lobby-hero__content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.lobby-hero h1 {
+  margin: var(--ds-space-3) 0 var(--ds-space-2);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  background: linear-gradient(135deg, #fff 0%, var(--ds-gold) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lobby-hero p {
+  margin: 0;
+  font-size: var(--ds-text-lg);
+  color: var(--ds-text-secondary);
+}
+
+.lobby-section {
+  margin-bottom: var(--ds-space-8);
+}
+
+.lobby-section__title {
+  margin: 0 0 var(--ds-space-4);
+  font-size: var(--ds-text-base);
+  text-transform: uppercase;
+  letter-spacing: var(--ds-tracking-wider);
+  color: var(--ds-gold);
+  padding-left: var(--ds-space-2);
+  border-left: 3px solid var(--ds-gold-dim);
+}
+
+.lobby-section__scroll {
+  display: flex;
+  gap: var(--ds-space-4);
+  overflow-x: auto;
+  padding: var(--ds-space-2) var(--ds-space-1) var(--ds-space-4);
+  scroll-snap-type: x mandatory;
+}
+
+.lobby-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
+  gap: var(--ds-space-4);
+  max-width: 320px;
+}
+
+.lobby-section__empty {
+  margin: 0;
+  color: var(--ds-text-secondary);
+}
+
+.lobby-section__scroll > * {
+  scroll-snap-align: start;
+}

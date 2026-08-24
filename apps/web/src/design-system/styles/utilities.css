@@ -1,0 +1,133 @@
+/* Shared utility classes used across design system components */
+
+.ds-panel {
+  position: relative;
+  background: linear-gradient(
+    155deg,
+    var(--ds-surface-crimson-hover) 0%,
+    var(--ds-surface-crimson) 35%,
+    var(--ds-surface-elevated) 100%
+  );
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-panel), var(--ds-shadow-inset);
+}
+
+.ds-panel--chrome::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--ds-border-chrome);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.ds-panel__header {
+  padding: var(--ds-space-4) var(--ds-space-5);
+  border-bottom: 1px solid var(--ds-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 100%);
+}
+
+.ds-panel__body {
+  padding: var(--ds-space-5);
+}
+
+.ds-panel__title {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--ds-tracking-wider);
+  color: var(--ds-text-gold);
+}
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-1);
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--ds-radius-full);
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ds-badge--gold {
+  background: rgba(245, 200, 66, 0.12);
+  color: var(--ds-gold);
+  border: 1px solid var(--ds-border-gold);
+}
+
+.ds-badge--live {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--ds-success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.ds-badge--muted {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ds-text-secondary);
+  border: 1px solid var(--ds-border-subtle);
+}
+
+.ds-badge--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--ds-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ds-badge--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--ds-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ds-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.28) 100%);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-primary);
+  font-size: var(--ds-text-base);
+  box-shadow: var(--ds-shadow-inset);
+  transition: border-color var(--ds-transition-fast), box-shadow var(--ds-transition-fast);
+}
+
+.ds-input:focus {
+  outline: none;
+  border-color: var(--ds-gold-dim);
+  box-shadow: var(--ds-shadow-inset), 0 0 0 2px rgba(245, 200, 66, 0.12);
+}
+
+.ds-input::placeholder {
+  color: var(--ds-text-muted);
+}
+
+.ds-stat-value {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-text-2xl);
+  font-weight: 800;
+  color: var(--ds-gold);
+  text-shadow: 0 0 20px var(--ds-gold-glow);
+  line-height: var(--ds-leading-tight);
+}
+
+.ds-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

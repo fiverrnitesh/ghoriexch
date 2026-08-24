@@ -1,0 +1,75 @@
+.dice-result-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  animation: dice-result-reveal 0.45s ease-out;
+}
+
+.dice-result-panel--win {
+  border-color: rgba(255, 215, 0, 0.45);
+  box-shadow: 0 0 20px rgba(255, 200, 66, 0.2);
+}
+
+.dice-result-panel--loss {
+  border-color: rgba(185, 28, 28, 0.35);
+}
+
+.dice-result-panel--no-result {
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.dice-result-panel__heading,
+.dice-result-panel__dice-line {
+  display: none;
+}
+
+.dice-result-panel__blank {
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #94a3b8;
+}
+
+.dice-result-panel__parity {
+  font-family: var(--ds-font-display);
+  font-size: clamp(1.6rem, 4.2cqw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: #f5d76e;
+  text-shadow: 0 0 22px rgba(245, 200, 66, 0.55);
+}
+
+.dice-result-panel__outcome {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.dice-result-panel__outcome--win {
+  color: #86efac;
+}
+
+.dice-result-panel__outcome--loss {
+  color: #fca5a5;
+}
+
+@keyframes dice-result-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-result-panel {
+    animation: none;
+  }
+}

@@ -1,0 +1,115 @@
+.dice-sim-controls {
+  position: fixed;
+  top: 72px;
+  right: 12px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(12, 8, 24, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: auto;
+  max-width: 220px;
+}
+
+.dice-sim-controls__badge {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #d4af37;
+}
+
+.dice-sim-controls__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0.9;
+}
+
+.dice-sim-controls__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dice-sim-controls__btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.dice-sim-controls__btn--on {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.dice-sim-controls__btn--stop {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.dice-sim-controls__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dice-sim-controls__speed {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+}
+
+.dice-sim-controls__speed-btn {
+  flex: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.dice-sim-controls__speed-btn--active {
+  border-color: #d4af37;
+  color: #d4af37;
+}
+
+.dice-sim-controls__failures {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.dice-sim-lobby-btn {
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px dashed rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.08);
+  color: #d4af37;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dice-sim-lobby-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .dice-sim-controls {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+    font-size: 10px;
+    max-width: 180px;
+  }
+}

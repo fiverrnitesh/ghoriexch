@@ -1,0 +1,571 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum RoleName {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING_VERIFICATION
+}
+
+enum WalletTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  GAME_DEBIT
+  GAME_CREDIT
+  PLATFORM_FEE
+  REFUND
+  LOCK
+  UNLOCK
+  SANDBOX_CREDIT
+  SANDBOX_DEBIT
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+enum GameStatus {
+  DRAFT
+  ACTIVE
+  MAINTENANCE
+  DISABLED
+  ARCHIVED
+}
+
+enum GameSessionStatus {
+  WAITING
+  STARTING
+  IN_PROGRESS
+  SETTLING
+  COMPLETED
+  CANCELLED
+  ABANDONED
+}
+
+enum GamePlayerStatus {
+  JOINED
+  READY
+  PLAYING
+  SPECTATING
+  LEFT
+  DISCONNECTED
+  KICKED
+}
+
+enum RoomStatus {
+  OPEN
+  FULL
+  IN_GAME
+  CLOSED
+  ARCHIVED
+}
+
+enum BetStatus {
+  PENDING
+  ACCEPTED
+  LOCKED
+  WON
+  LOST
+  PUSH
+  REFUNDED
+  CANCELLED
+  SETTLED
+}
+
+enum NotificationType {
+  SYSTEM
+  WALLET
+  GAME
+  PROMOTION
+  SECURITY
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum BotStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum AuditAction {
+  USER_CREATE
+  USER_UPDATE
+  USER_SUSPEND
+  USER_BAN
+  ROLE_ASSIGN
+  ROLE_REVOKE
+  WALLET_ADJUST
+  WALLET_SANDBOX_CREDIT
+  GAME_CREATE
+  GAME_UPDATE
+  GAME_CONFIG_UPDATE
+  ROOM_CREATE
+  ROOM_CLOSE
+  BOT_CREATE
+  BOT_UPDATE
+  SESSION_FORCE_CLOSE
+  BET_VOID
+  SYSTEM_CONFIG
+  TEST_SESSION_CONTROL
+}
+
+// ─── Auth & Users ────────────────────────────────────────────────────────────
+
+model Role {
+  id        String   @id @default(cuid())
+  name      RoleName @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users UserRole[]
+
+  @@map("roles")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  username     String     @unique
+  passwordHash String
+  displayName  String?
+  avatarUrl    String?
+  preferences  Json       @default("{}")
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  roles         UserRole[]
+  wallet        Wallet?
+  gamePlayers   GamePlayer[]
+  betParticipants BetParticipant[]
+  notifications Notification[]
+  auditLogs     AdminAuditLog[] @relation("AuditActor")
+  hostedRooms   Room[]          @relation("RoomHost")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserRole {
+  userId    String
+  roleId    String
+  grantedAt DateTime @default(now())
+  grantedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ─── Wallet ──────────────────────────────────────────────────────────────────
+
+model Wallet {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  currency         String   @default("USD")
+  balance          Decimal  @default(0) @db.Decimal(18, 4)
+  availableBalance Decimal  @default(0) @db.Decimal(18, 4)
+  lockedBalance    Decimal  @default(0) @db.Decimal(18, 4)
+  version          Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@index([userId])
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id              String                    @id @default(cuid())
+  walletId        String
+  type            WalletTransactionType
+  status          WalletTransactionStatus   @default(PENDING)
+  amount          Decimal                   @db.Decimal(18, 4)
+  balanceBefore   Decimal                   @db.Decimal(18, 4)
+  balanceAfter    Decimal                   @db.Decimal(18, 4)
+  availableBefore Decimal                   @db.Decimal(18, 4)
+  availableAfter  Decimal                   @db.Decimal(18, 4)
+  lockedBefore    Decimal                   @db.Decimal(18, 4)
+  lockedAfter     Decimal                   @db.Decimal(18, 4)
+  currency        String                    @default("USD")
+  description     String?
+  referenceType   String?
+  referenceId     String?
+  idempotencyKey  String?                   @unique
+  metadata        Json?
+  processedAt     DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([type, status])
+  @@index([referenceType, referenceId])
+  @@map("wallet_transactions")
+}
+
+// ─── Games ───────────────────────────────────────────────────────────────────
+
+model Game {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String?
+  version     String     @default("1.0.0")
+  category    String?
+  provider    String?
+  minPlayers  Int        @default(1)
+  maxPlayers  Int        @default(10)
+  minBet      Decimal?   @db.Decimal(18, 4)
+  maxBet      Decimal?   @db.Decimal(18, 4)
+  status      GameStatus @default(DRAFT)
+  thumbnailUrl String?
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  sessions       GameSession[]
+  rooms          Room[]
+  bets           Bet[]
+  bots           Bot[]
+  configurations GameConfiguration[]
+
+  @@index([status, sortOrder])
+  @@index([category])
+  @@map("games")
+}
+
+model GameConfiguration {
+  id        String   @id @default(cuid())
+  gameId    String
+  key       String
+  value     Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key])
+  @@index([gameId, isActive])
+  @@map("game_configurations")
+}
+
+model GameSession {
+  id             String            @id @default(cuid())
+  gameId         String
+  roomId         String?
+  status         GameSessionStatus @default(WAITING)
+  isTestMode     Boolean           @default(false)
+  roundNumber    Int               @default(0)
+  serverSeedHash String?
+  serverSeed     String?
+  clientSeed     String?
+  nonce          Int               @default(0)
+  state          Json              @default("{}")
+  result         Json?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  settledAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  game    Game         @relation(fields: [gameId], references: [id])
+  room    Room?        @relation(fields: [roomId], references: [id])
+  players GamePlayer[]
+  bets    Bet[]
+  sideBets SideBet[]
+  diceRounds DiceRound[]
+
+  @@index([gameId, status])
+  @@index([roomId])
+  @@index([createdAt])
+  @@map("game_sessions")
+}
+
+model GamePlayer {
+  id        String           @id @default(cuid())
+  sessionId String
+  userId    String
+  seatIndex Int?
+  status    GamePlayerStatus @default(JOINED)
+  state     Json             @default("{}")
+  joinedAt  DateTime         @default(now())
+  leftAt    DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, status])
+  @@index([userId])
+  @@map("game_players")
+}
+
+// ─── Rooms ───────────────────────────────────────────────────────────────────
+
+model Room {
+  id          String     @id @default(cuid())
+  gameId      String
+  hostUserId  String?
+  name        String
+  code        String     @unique
+  status      RoomStatus @default(OPEN)
+  maxPlayers  Int
+  minBet      Decimal?   @db.Decimal(18, 4)
+  maxBet      Decimal?   @db.Decimal(18, 4)
+  isPrivate   Boolean    @default(false)
+  metadata    Json       @default("{}")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  closedAt    DateTime?
+
+  game     Game          @relation(fields: [gameId], references: [id])
+  host     User?         @relation("RoomHost", fields: [hostUserId], references: [id])
+  sessions GameSession[]
+  bets     Bet[]
+
+  @@index([gameId, status])
+  @@index([code])
+  @@map("rooms")
+}
+
+// ─── Betting ─────────────────────────────────────────────────────────────────
+
+model Bet {
+  id          String    @id @default(cuid())
+  gameId      String
+  sessionId   String?
+  roomId      String?
+  userId      String
+  amount      Decimal   @db.Decimal(18, 4)
+  currency    String    @default("USD")
+  status      BetStatus @default(PENDING)
+  selection   Json?
+  payout      Decimal?  @db.Decimal(18, 4)
+  odds        Decimal?  @db.Decimal(10, 4)
+  settledAt   DateTime?
+  idempotencyKey String? @unique
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  game         Game             @relation(fields: [gameId], references: [id])
+  session      GameSession?     @relation(fields: [sessionId], references: [id])
+  room         Room?            @relation(fields: [roomId], references: [id])
+  participants BetParticipant[]
+
+  @@index([userId, status])
+  @@index([sessionId])
+  @@index([gameId, createdAt])
+  @@map("bets")
+}
+
+model BetParticipant {
+  id        String   @id @default(cuid())
+  betId     String
+  userId    String
+  share     Decimal  @default(1) @db.Decimal(5, 4)
+  amount    Decimal  @db.Decimal(18, 4)
+  payout    Decimal? @db.Decimal(18, 4)
+  createdAt DateTime @default(now())
+
+  bet  Bet  @relation(fields: [betId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([betId, userId])
+  @@index([userId])
+  @@map("bet_participants")
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  status    NotificationStatus @default(UNREAD)
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@map("notifications")
+}
+
+// ─── Bots ────────────────────────────────────────────────────────────────────
+
+model Bot {
+  id        String    @id @default(cuid())
+  gameId    String
+  name      String
+  avatarUrl String?
+  status    BotStatus @default(INACTIVE)
+  config    Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, status])
+  @@map("bots")
+}
+
+enum SideBetPrediction {
+  WIN
+  LOSS
+}
+
+enum SideBetStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WON
+  LOST
+  CANCELLED
+  REFUNDED
+}
+
+// ─── Dice game extensions ──────────────────────────────────────────────────────
+
+model SideBet {
+  id             String            @id @default(cuid())
+  sessionId      String
+  roundNumber    Int
+  roundId        String
+  backerUserId   String
+  targetUserId   String
+  prediction     SideBetPrediction
+  amount         Decimal           @db.Decimal(18, 4)
+  status         SideBetStatus     @default(PENDING)
+  walletLockRef  String?
+  betId          String?
+  idempotencyKey String?           @unique
+  expiresAt      DateTime?
+  settledAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, roundNumber])
+  @@index([targetUserId, status])
+  @@index([backerUserId])
+  @@map("side_bets")
+}
+
+model DiceRound {
+  id              String   @id @default(cuid())
+  sessionId       String
+  roomId          String?
+  roundNumber     Int
+  roundId         String   @unique
+  holderUserId    String?
+  holderBotId     String?
+  opponentUserId  String?
+  opponentBotId   String?
+  die1            String
+  die2            String
+  hasBlank        Boolean  @default(false)
+  playerChoice    String
+  outcome         String
+  winnerUserId    String?
+  winnerBotId     String?
+  mainBetAmount   Decimal? @db.Decimal(18, 4)
+  mainBetPayout   Decimal? @db.Decimal(18, 4)
+  holderStake     Decimal? @db.Decimal(18, 4)
+  opponentStake   Decimal? @db.Decimal(18, 4)
+  matchedPool     Decimal? @db.Decimal(18, 4)
+  adminFee        Decimal? @db.Decimal(18, 4)
+  winnerPayout    Decimal? @db.Decimal(18, 4)
+  settlementId    String?  @unique
+  serverSeedHash  String?
+  nonce           Int?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  settledAt       DateTime?
+
+  session GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, roundNumber])
+  @@map("dice_rounds")
+}
+
+// ─── Audit ───────────────────────────────────────────────────────────────────
+
+model AdminAuditLog {
+  id         String      @id @default(cuid())
+  actorId    String
+  action     AuditAction
+  targetType String?
+  targetId   String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  actor User @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
+  @@map("admin_audit_logs")
+}
+
+// ─── Idempotency tracking ────────────────────────────────────────────────────
+
+model IdempotencyRecord {
+  id             String   @id @default(cuid())
+  key            String   @unique
+  userId         String?
+  endpoint       String
+  requestHash    String?
+  responseStatus Int
+  responseBody   Json?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}

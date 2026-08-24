@@ -1,0 +1,133 @@
+.ds-game-card-link {
+  flex: 0 0 170px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.ds-game-card-link--disabled {
+  cursor: not-allowed;
+}
+
+.ds-game-card {
+  position: relative;
+  height: 232px;
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-shadow: var(--ds-shadow-panel);
+  transition: transform var(--ds-transition-base), box-shadow var(--ds-transition-base);
+}
+
+.ds-game-card-link:not(.ds-game-card-link--disabled):hover .ds-game-card {
+  transform: translateY(-6px);
+  box-shadow: var(--ds-shadow-panel), var(--ds-shadow-glow-gold);
+}
+
+.ds-game-card--disabled {
+  opacity: 0.72;
+  filter: saturate(0.55);
+}
+
+.ds-game-card__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -2px 4px rgba(0,0,0,0.3);
+  pointer-events: none;
+}
+
+.ds-game-card__live {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--ds-radius-full);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+}
+
+.ds-game-card__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ds-success);
+  box-shadow: 0 0 6px var(--ds-success);
+}
+
+.ds-game-card__visual {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.ds-game-card__emoji {
+  font-size: 4.25rem;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+}
+
+.ds-game-card__badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--ds-radius-sm);
+  background: rgba(0,0,0,0.75);
+  border: 1px solid var(--ds-border-gold);
+  color: var(--ds-gold);
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--ds-tracking-wide);
+  text-transform: uppercase;
+}
+
+.ds-game-card__footer {
+  position: relative;
+  z-index: 1;
+  padding: 2.75rem 0.75rem 0.9rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, transparent 100%);
+  text-align: center;
+}
+
+.ds-game-card__title {
+  margin: 0;
+  font-family: var(--ds-font-display);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+}
+
+.ds-game-card__provider {
+  margin: 0.25rem 0 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: rgba(245, 200, 66, 0.75);
+  text-transform: uppercase;
+}
+
+/* Category themes */
+.ds-game-card--crimson { background: linear-gradient(160deg, #7f1d1d, #450a0a 50%, #1c1917); }
+.ds-game-card--emerald { background: linear-gradient(160deg, #065f46, #064e3b 50%, #052e16); }
+.ds-game-card--magenta { background: linear-gradient(160deg, #be185d, #831843 50%, #4c0519); }
+.ds-game-card--blue { background: linear-gradient(160deg, #1e40af, #1e3a8a 50%, #172554); }
+.ds-game-card--gold { background: linear-gradient(160deg, #92400e, #78350f 50%, #451a03); }
+.ds-game-card--default { background: linear-gradient(160deg, var(--ds-red-dark), var(--ds-surface) 100%); }
+
+@media (max-width: 640px) {
+  .ds-game-card-link { flex: 0 0 150px; }
+  .ds-game-card { height: 210px; }
+}
