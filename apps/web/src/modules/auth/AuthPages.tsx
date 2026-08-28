@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { GoldButton } from '../../design-system';
-import { DemoLoginPanel } from '../games/dice/components/DemoLoginPanel';
 import './AuthPages.css';
 
 export function LoginPage() {
-  const { login, demoLogin } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('player1@games.local');
-  const [password, setPassword] = useState('DevPassword123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -41,23 +40,33 @@ export function LoginPage() {
             {error && <div className="auth-error">{error}</div>}
             <label className="auth-label">
               Email
-              <input className="ds-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <input
+                className="ds-input"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </label>
             <label className="auth-label">
               Password
-              <input className="ds-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <input
+                className="ds-input"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </label>
             <GoldButton type="submit" fullWidth loading={loading}>
               Sign In
             </GoldButton>
           </form>
           <p className="auth-switch">
-            No account? <Link to="/register">Register</Link>
+            Don't have an account? <Link to="/register">Create Account</Link>
           </p>
-          <div className="auth-dev-hint">
-            Dev: player1@games.local / DevPassword123!
-          </div>
-          <DemoLoginPanel onLogin={async (email) => { await demoLogin(email); navigate(from); }} />
         </div>
       </div>
     </div>

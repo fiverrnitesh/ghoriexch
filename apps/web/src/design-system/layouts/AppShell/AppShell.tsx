@@ -37,7 +37,7 @@ export function AppShell({
     <ToastProvider>
       <div className="ds-app-shell">
         <Header
-          navigation={navItems.length > 0 ? <Navigation items={navItems} /> : undefined}
+          navigation={user && navItems.length > 0 ? <Navigation items={navItems} /> : undefined}
           actions={
             user ? (
               <>
@@ -52,7 +52,7 @@ export function AppShell({
               </>
             ) : (
               <>
-                <Link to={loginPath}><SecondaryButton size="sm">Login</SecondaryButton></Link>
+                <Link to={loginPath}><SecondaryButton size="sm">Sign In</SecondaryButton></Link>
                 <Link to={registerPath}><GoldButton size="sm">Register</GoldButton></Link>
               </>
             )
@@ -65,7 +65,7 @@ export function AppShell({
           <p>Ghori Exch · Premium multiplayer gaming · Server-authoritative platform</p>
         </footer>
 
-        {navItems.length > 0 && <MobileNavigation items={navItems} />}
+        {user && navItems.length > 0 && <MobileNavigation items={navItems} />}
       </div>
     </ToastProvider>
   );

@@ -55,7 +55,10 @@ function AppRoutes() {
   return (
     <AppShell navItems={NAV_ITEMS} user={user} balanceDisplay={balanceDisplay} onLogout={() => logout()}>
       <Routes>
-        <Route path="/" element={<LobbyPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        <Route path="/" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
         <Route
           path="/games/dice"
           element={(
@@ -76,10 +79,8 @@ function AppRoutes() {
             </ProtectedRoute>
           )}
         />
-        <Route path="/design-system" element={<DesignSystemPage />} />
-        <Route path="/games/:slug" element={<GameDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/design-system" element={<ProtectedRoute><DesignSystemPage /></ProtectedRoute>} />
+        <Route path="/games/:slug" element={<ProtectedRoute><GameDetailPage /></ProtectedRoute>} />
 
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/profile/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
@@ -89,7 +90,7 @@ function AppRoutes() {
         <Route path="/wallet/withdraw" element={<ProtectedRoute><WithdrawPage /></ProtectedRoute>} />
         <Route path="/wallet/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
 
-        <Route path="/rooms" element={<RoomsPage />} />
+        <Route path="/rooms" element={<ProtectedRoute><RoomsPage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><GameHistoryPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
