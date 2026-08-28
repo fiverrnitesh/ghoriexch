@@ -29,6 +29,16 @@
   align-items: baseline;
   gap: var(--ds-space-2);
   flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ds-header--centered .ds-header__inner {
+  justify-content: center;
+}
+
+.ds-header--centered .ds-header__logo {
+  margin: 0 auto;
 }
 
 .ds-header__logo-mark {

@@ -4,7 +4,7 @@ import { Header } from '../../components/Header/Header';
 import { Navigation, MobileNavigation, type NavItem } from '../../components/Navigation/Navigation';
 import { BalanceBadge } from '../../components/Wallet/WalletDisplay';
 import { UserAvatar } from '../../components/UserAvatar/UserAvatar';
-import { GoldButton, SecondaryButton } from '../../components/Button/Button';
+import { SecondaryButton } from '../../components/Button/Button';
 import { ToastProvider } from '../../components/Toast/Toast';
 import './AppShell.css';
 
@@ -15,8 +15,6 @@ export interface AppShellProps {
   user?: { displayName?: string | null; username: string } | null;
   balanceDisplay?: string;
   onLogout?: () => void;
-  loginPath?: string;
-  registerPath?: string;
 }
 
 export function AppShell({
@@ -26,8 +24,6 @@ export function AppShell({
   user,
   balanceDisplay,
   onLogout,
-  loginPath = '/login',
-  registerPath = '/register',
 }: AppShellProps) {
   if (minimal) {
     return <ToastProvider>{children}</ToastProvider>;
@@ -50,12 +46,7 @@ export function AppShell({
                 <span className="ds-app-shell__username">{user.displayName ?? user.username}</span>
                 {onLogout && <SecondaryButton size="sm" onClick={onLogout}>Logout</SecondaryButton>}
               </>
-            ) : (
-              <>
-                <Link to={loginPath}><SecondaryButton size="sm">Sign In</SecondaryButton></Link>
-                <Link to={registerPath}><GoldButton size="sm">Register</GoldButton></Link>
-              </>
-            )
+            ) : null
           }
         />
 

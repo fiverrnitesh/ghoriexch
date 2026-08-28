@@ -6,11 +6,13 @@ export interface HeaderProps {
   logo?: ReactNode;
   navigation?: ReactNode;
   actions?: ReactNode;
+  centered?: boolean;
 }
 
-export function Header({ logo, navigation, actions }: HeaderProps) {
+export function Header({ logo, navigation, actions, centered }: HeaderProps) {
+  const isCentered = centered || (!navigation && !actions);
   return (
-    <header className="ds-header">
+    <header className={`ds-header ${isCentered ? 'ds-header--centered' : ''}`}>
       <div className="ds-header__inner">
         {logo ?? (
           <Link to="/" className="ds-header__logo">
@@ -19,7 +21,7 @@ export function Header({ logo, navigation, actions }: HeaderProps) {
           </Link>
         )}
         {navigation}
-        <div className="ds-header__actions">{actions}</div>
+        {actions ? <div className="ds-header__actions">{actions}</div> : null}
       </div>
     </header>
   );
