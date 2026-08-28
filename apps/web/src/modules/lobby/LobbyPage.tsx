@@ -4,6 +4,53 @@ import { api } from '../../lib/api-client';
 import { GameCard, LoadingState, ErrorState } from '../../design-system';
 import './LobbyPage.css';
 
+interface LobbyGameItem {
+  id: string;
+  slug: string;
+  name: string;
+  provider?: string | null;
+  status: string;
+  category?: string | null;
+  href?: string;
+  theme?: string;
+}
+
+const FEATURED_GAMES: LobbyGameItem[] = [
+  {
+    id: 'dice',
+    slug: 'dice',
+    name: 'GHORI',
+    status: 'ACTIVE',
+    category: 'popular',
+    href: '/games/dice',
+    theme: 'ds-game-card--crimson',
+  },
+  {
+    id: 'ludo',
+    slug: 'ludo',
+    name: 'LUDO',
+    status: 'COMING_SOON',
+    category: 'indian-cards',
+    theme: 'ds-game-card--emerald',
+  },
+  {
+    id: '8-pool',
+    slug: '8-pool',
+    name: '8 POOL',
+    status: 'COMING_SOON',
+    category: 'pool',
+    theme: 'ds-game-card--blue',
+  },
+  {
+    id: 'aviator',
+    slug: 'aviator',
+    name: 'AVIATOR',
+    status: 'COMING_SOON',
+    category: 'crash',
+    theme: 'ds-game-card--magenta',
+  },
+];
+
 export function LobbyPage() {
   const [games, setGames] = useState<GameCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,42 +79,44 @@ export function LobbyPage() {
     return () => window.clearTimeout(retry);
   }, [error, loadGames]);
 
-  const diceGame = games.find((g) => g.slug === 'dice' && g.status === 'ACTIVE');
+  const diceApiGame = games.find((g) => g.slug === 'dice');
+
+  const displayGames: LobbyGameItem[] = FEATURED_GAMES.map((item) => {
+    if (item.slug === 'dice' && diceApiGame) {
+      return {
+        ...item,
+        id: diceApiGame.id,
+        status: diceApiGame.status,
+      };
+    }
+    return item;
+  });
 
   return (
     <div className="lobby">
-      <section className="lobby-hero ds-panel ds-panel--chrome">
-        <div className="lobby-hero__glow" aria-hidden="true" />
-        <div className="lobby-hero__content">
-          <span className="ds-badge ds-badge--gold">Live Now</span>
-          <h1>Dice Casino</h1>
-          <p>Multiplayer dice — PAO or EVEN, server-authoritative, fair, auditable.</p>
-        </div>
-      </section>
-
       {loading && <LoadingState message="Loading games..." />}
       {error && <ErrorState message={error} onRetry={() => void loadGames()} />}
 
       {!loading && !error && (
         <section className="lobby-section">
-          <h2 className="lobby-section__title">Dice</h2>
-          {diceGame ? (
-            <div className="lobby-section__grid">
+          <h2 className="lobby-section__title">GAMES</h2>
+          <div className="lobby-section__grid">
+            {displayGames.map((game) => (
               <GameCard
+                key={game.slug}
                 game={{
-                  id: diceGame.id,
-                  slug: diceGame.slug,
-                  name: diceGame.name,
-                  provider: diceGame.provider,
-                  status: diceGame.status,
-                  category: diceGame.category,
+                  id: game.id,
+                  slug: game.slug,
+                  name: game.name,
+                  provider: game.provider,
+                  status: game.status,
+                  category: game.category,
                 }}
-                href="/games/dice"
+                theme={game.theme}
+                href={game.href}
               />
-            </div>
-          ) : (
-            <p className="lobby-section__empty">Dice is temporarily unavailable.</p>
-          )}
+            ))}
+          </div>
         </section>
       )}
     </div>

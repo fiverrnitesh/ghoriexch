@@ -60,9 +60,9 @@
 
 .lobby-section__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
-  gap: var(--ds-space-4);
-  max-width: 320px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--ds-space-6);
+  width: 100%;
 }
 
 .lobby-section__empty {

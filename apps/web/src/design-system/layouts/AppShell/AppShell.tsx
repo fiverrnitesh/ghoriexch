@@ -62,7 +62,7 @@ export function AppShell({
         <main className="ds-app-shell__main">{children}</main>
 
         <footer className="ds-app-shell__footer">
-          <p>GO Exchange · Premium multiplayer gaming · Server-authoritative platform</p>
+          <p>Ghori Exch · Premium multiplayer gaming · Server-authoritative platform</p>
         </footer>
 
         {navItems.length > 0 && <MobileNavigation items={navItems} />}

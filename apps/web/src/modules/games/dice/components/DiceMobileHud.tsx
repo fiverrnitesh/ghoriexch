@@ -3,7 +3,7 @@ import { BalanceBadge, UserAvatar } from '../../../../design-system';
 import './DiceMobileHud.css';
 
 const HUD_NAV = [
-  { path: '/games/dice', label: 'Dice' },
+  { path: '/games/dice', label: 'Ghori' },
   { path: '/wallet', label: 'Wallet' },
   { path: '/history', label: 'History' },
   { path: '/profile', label: 'Profile' },
@@ -21,7 +21,7 @@ export function DiceMobileHud({
   return (
     <header className="dice-mobile-hud" aria-label="Game header">
       <Link to="/" className="dice-mobile-hud__brand">
-        <span className="dice-mobile-hud__mark">GO</span>
+        <span className="dice-mobile-hud__mark">GHORI EXCH</span>
       </Link>
       <nav className="dice-mobile-hud__nav" aria-label="Main navigation">
         {HUD_NAV.map((item) => (

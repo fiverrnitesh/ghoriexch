@@ -143,7 +143,7 @@ function ShowcaseContent() {
             timerLabel="Betting"
             onLeave={() => toast('Leave game', 'info')}
             table={
-              <GameTable watermark="GO EXCHANGE" center={<TablePot amount="$480.00" />} top={<UserAvatar name="Host" size="md" />}>
+              <GameTable watermark="GHORI EXCH" center={<TablePot amount="$480.00" />} top={<UserAvatar name="Host" size="md" />}>
                 <PlayerSeat name="Alex" balance="$1,200" position="top-left" status="playing" />
                 <PlayerSeat name="Sam" balance="$800" position="top-right" />
                 <PlayerSeat name="You" balance="$2,500" position="bottom" isSelf highlight statusLabel="Your turn" ribbon="Winner" />

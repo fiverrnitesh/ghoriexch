@@ -8,8 +8,8 @@ export default function GameHub() {
       <header className="home-header">
         <div className="home-header__inner">
           <div className="home-logo">
-            <span className="home-logo__mark">GO</span>
-            <span className="home-logo__text">Exchange</span>
+            <span className="home-logo__mark">Ghori</span>
+            <span className="home-logo__text">Exch</span>
           </div>
 
           <nav className="home-nav">

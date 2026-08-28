@@ -9,6 +9,7 @@ export interface GameCardData {
   status: string;
   category?: string | null;
   playerCount?: number;
+  image?: string | null;
 }
 
 export interface GameCardProps {
@@ -28,14 +29,23 @@ const THEME_GRADIENTS: Record<string, string> = {
 };
 
 const EMOJI: Record<string, string> = {
-  'sic-bo': '🎲', ludo: '🎯', aviator: '🚀', mines: '💎',
-  'dragon-tiger': '🐉', 'teen-patti-1day': '🃏', '32-cards': '🂱',
+  dice: '🎲',
+  'sic-bo': '🎲',
+  ludo: '🎲',
+  '8-pool': '🎱',
+  pool: '🎱',
+  aviator: '✈️',
+  mines: '💎',
+  'dragon-tiger': '🐉',
+  'teen-patti-1day': '🃏',
+  '32-cards': '🂱',
 };
 
 export function GameCard({ game, theme, disabled, href }: GameCardProps) {
   const isActive = game.status === 'ACTIVE' && !disabled;
   const themeClass = theme ?? THEME_GRADIENTS[game.category ?? ''] ?? THEME_GRADIENTS.default;
   const emoji = EMOJI[game.slug] ?? '🎰';
+  const isGhori = game.slug === 'dice' || game.slug === 'ghori';
 
   const card = (
     <article className={`ds-game-card ${themeClass} ${!isActive ? 'ds-game-card--disabled' : ''}`}>
@@ -46,7 +56,13 @@ export function GameCard({ game, theme, disabled, href }: GameCardProps) {
         </span>
       )}
       <div className="ds-game-card__visual">
-        <span className="ds-game-card__emoji">{emoji}</span>
+        {isGhori ? (
+          <img src="/images/ghori-dice.svg" alt={game.name} className="ds-game-card__svg-icon" />
+        ) : game.image ? (
+          <img src={game.image} alt={game.name} className="ds-game-card__svg-icon" />
+        ) : (
+          <span className="ds-game-card__emoji">{emoji}</span>
+        )}
       </div>
       {!isActive && (
         <span className="ds-game-card__badge">
@@ -55,7 +71,6 @@ export function GameCard({ game, theme, disabled, href }: GameCardProps) {
       )}
       <div className="ds-game-card__footer">
         <h3 className="ds-game-card__title">{game.name}</h3>
-        {game.provider && <p className="ds-game-card__provider">{game.provider}</p>}
       </div>
       <div className="ds-game-card__rim" aria-hidden="true" />
     </article>

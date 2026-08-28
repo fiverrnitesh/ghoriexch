@@ -14,8 +14,8 @@ export function Header({ logo, navigation, actions }: HeaderProps) {
       <div className="ds-header__inner">
         {logo ?? (
           <Link to="/" className="ds-header__logo">
-            <span className="ds-header__logo-mark">GO</span>
-            <span className="ds-header__logo-text">Exchange</span>
+            <span className="ds-header__logo-mark">Ghori</span>
+            <span className="ds-header__logo-text">Exch</span>
           </Link>
         )}
         {navigation}

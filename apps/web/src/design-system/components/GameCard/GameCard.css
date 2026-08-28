@@ -1,5 +1,5 @@
 .ds-game-card-link {
-  flex: 0 0 170px;
+  width: 100%;
   text-decoration: none;
   color: inherit;
   display: block;
@@ -11,7 +11,8 @@
 
 .ds-game-card {
   position: relative;
-  height: 232px;
+  aspect-ratio: 1 / 1;
+  min-height: 240px;
   border-radius: var(--ds-radius-lg);
   overflow: hidden;
   display: flex;
@@ -67,13 +68,29 @@
 .ds-game-card__visual {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2.5rem;
 }
 
 .ds-game-card__emoji {
-  font-size: 4.25rem;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+  font-size: 7.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6));
+  user-select: none;
+}
+
+.ds-game-card__svg-icon {
+  width: 140px;
+  height: 140px;
+  max-width: 75%;
+  max-height: 75%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6));
 }
 
 .ds-game-card__badge {
@@ -82,15 +99,17 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 3;
-  padding: 0.4rem 0.75rem;
+  padding: 0.45rem 0.85rem;
   border-radius: var(--ds-radius-sm);
-  background: rgba(0,0,0,0.75);
+  background: rgba(8, 5, 14, 0.88);
   border: 1px solid var(--ds-border-gold);
   color: var(--ds-gold);
   font-size: var(--ds-text-xs);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: var(--ds-tracking-wide);
   text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.7);
 }
 
 .ds-game-card__footer {
@@ -104,9 +123,9 @@
 .ds-game-card__title {
   margin: 0;
   font-family: var(--ds-font-display);
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: #fff;
 }
 
@@ -128,6 +147,5 @@
 .ds-game-card--default { background: linear-gradient(160deg, var(--ds-red-dark), var(--ds-surface) 100%); }
 
 @media (max-width: 640px) {
-  .ds-game-card-link { flex: 0 0 150px; }
-  .ds-game-card { height: 210px; }
+  .ds-game-card { min-height: 160px; }
 }

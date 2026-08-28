@@ -297,7 +297,7 @@ async function seedDiceGame() {
       maxBet: 10000,
       version: '1.0.0',
       category: 'popular',
-      provider: 'GO EXCHANGE',
+      provider: 'GHORI EXCH',
       sortOrder: 0,
     },
     create: {
@@ -311,7 +311,7 @@ async function seedDiceGame() {
       maxBet: 10000,
       version: '1.0.0',
       category: 'popular',
-      provider: 'GO EXCHANGE',
+      provider: 'GHORI EXCH',
       sortOrder: 0,
     },
   });

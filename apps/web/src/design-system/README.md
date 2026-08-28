@@ -1,4 +1,4 @@
-# GO Exchange Design System
+# Ghori Exch Design System
 
 Premium 2D/3D hybrid casino UI for the gaming platform.
 

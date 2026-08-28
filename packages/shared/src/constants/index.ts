@@ -24,7 +24,7 @@ export const ADMIN_NAV = [
 
 export const PLAYER_NAV = [
   { path: '/', label: 'Lobby' },
-  { path: '/games/dice', label: 'Dice' },
+  { path: '/games/dice', label: 'Ghori' },
   { path: '/wallet', label: 'Wallet' },
   { path: '/history', label: 'History' },
   { path: '/profile', label: 'Profile' },

@@ -1,0 +1,39 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_PORT || 22 }}
+          script: |
+            # Navigate to project directory (update path if different)
+            cd /var/www/ghoriexch || cd ~/ghoriexch
+
+            echo "🚀 Fetching latest changes..."
+            git pull origin main
+
+            echo "📦 Installing dependencies..."
+            npm install
+
+            echo "🗄️ Running database migrations..."
+            npm run db:generate
+            npm run db:migrate:deploy
+
+            echo "🔨 Building frontend & backend..."
+            npm run build
+
+            echo "🔄 Restarting application with PM2..."
+            pm2 restart ecosystem.config.cjs || pm2 restart all
+
+            echo "✅ Deployment completed successfully!"

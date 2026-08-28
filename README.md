@@ -1,4 +1,4 @@
-# GO Exchange — Gaming Platform
+# Ghori Exch — Gaming Platform
 
 Scalable, server-authoritative casino-style gaming platform foundation. Supports 50–100 games via a plugin architecture.
 

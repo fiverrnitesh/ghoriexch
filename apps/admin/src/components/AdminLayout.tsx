@@ -30,8 +30,8 @@ export function AdminLayout({
     <div className="admin-shell">
       <aside className="admin-sidebar panel">
         <div className="admin-brand">
-          <span className="admin-brand__mark">GO</span>
-          <span>Admin</span>
+          <span className="admin-brand__mark">GHORI</span>
+          <span>Exch Admin</span>
         </div>
         <nav className="admin-nav">
           {NAV.map(({ path, label }) => (
