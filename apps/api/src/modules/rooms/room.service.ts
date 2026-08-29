@@ -125,7 +125,9 @@ export class RoomService {
   }
 
   async adminListAll(page = 1, pageSize = 50, params?: { gameId?: string; status?: string }) {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      code: { notIn: ['SIM-DICE-01', 'DEMO-DICE-01'] },
+    };
     if (params?.gameId) where.gameId = params.gameId;
     if (params?.status) where.status = params.status;
 
@@ -191,7 +193,12 @@ export class RoomService {
     });
 
     return rooms
-      .filter((room) => room.sessions[0] && !room.sessions[0].isTestMode)
+      .filter((room) => {
+        if (!room.sessions[0] || room.sessions[0].isTestMode) return false;
+        if (room.code === 'SIM-DICE-01' || room.code === 'DEMO-DICE-01') return false;
+        if (/demo|simulation/i.test(room.name)) return false;
+        return true;
+      })
       .map((room, index) => {
         const session = room.sessions[0]!;
         const dice = diceAdminSnapshot(session.state, session.players);

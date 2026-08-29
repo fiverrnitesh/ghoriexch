@@ -46,6 +46,9 @@ export function DiceGamePage() {
     rolling,
     displayResult,
     settlementDisplay,
+    turnTimerSeconds,
+    phaseTimerSeconds,
+    phaseTimerKind,
     placeMainBet,
     rollDice,
     requestSideBet,
@@ -290,6 +293,36 @@ export function DiceGamePage() {
       ? formatAmount(parseFloat(playerMeta[user.id].balance!) || 0)
       : undefined;
 
+    let seatTimerSeconds: number | undefined;
+    let seatTimerMaxSeconds = 15;
+    let seatTimerActive = false;
+
+    if (isSeatHolder && turnTimerSeconds !== undefined && turnTimerSeconds >= 0) {
+      seatTimerSeconds = turnTimerSeconds;
+      seatTimerMaxSeconds = state.config?.turnTimeoutSeconds || 15;
+      seatTimerActive = true;
+    } else if (phaseTimerSeconds !== undefined && phaseTimerSeconds >= 0) {
+      if (phaseTimerKind === 'SIDE_BET' || state.phase === 'MAIN_MATCH_CONFIRMED') {
+        if (isActive) {
+          seatTimerSeconds = phaseTimerSeconds;
+          seatTimerMaxSeconds = state.config?.sideBetWindowSeconds || 10;
+          seatTimerActive = true;
+        }
+      } else if (phaseTimerKind === 'FINAL_LOCK' || state.phase === 'BETTING_LOCKED') {
+        if (isSeatHolder) {
+          seatTimerSeconds = phaseTimerSeconds;
+          seatTimerMaxSeconds = state.config?.finalLockSeconds || 5;
+          seatTimerActive = true;
+        }
+      } else if (phaseTimerKind === 'OPPONENT_MATCH' || state.phase === 'OPPONENT_MATCHING' || state.phase === 'MAIN_BET_PLACED') {
+        if (isSeatOpponent) {
+          seatTimerSeconds = phaseTimerSeconds;
+          seatTimerMaxSeconds = state.config?.opponentMatchWindowSeconds || 30;
+          seatTimerActive = true;
+        }
+      }
+    }
+
     slotViews[visualSlot] = {
       seatIndex: seat.seatIndex,
       visualSlot,
@@ -306,6 +339,9 @@ export function DiceGamePage() {
       onClick: seatInteractive && occupantUserId
         ? () => openSideBetForSeat(seat.seatIndex, occupantUserId, meta?.displayName ?? occupant.name)
         : undefined,
+      timerSeconds: seatTimerSeconds,
+      timerMaxSeconds: seatTimerMaxSeconds,
+      timerActive: seatTimerActive,
     };
   }
 

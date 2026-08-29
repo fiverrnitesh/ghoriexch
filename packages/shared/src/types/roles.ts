@@ -54,6 +54,8 @@ export const ADMIN_ROLES: RoleName[] = [
   ROLES.PANEL,
   ROLES.SUPER_ADMIN,
   ROLES.ADMIN,
+  ROLES.SUPER_MASTER,
+  ROLES.MASTER,
 ];
 
 export function hasRole(userRoles: RoleName[], role: RoleName): boolean {

@@ -10,14 +10,14 @@ import { FELT_RX, FELT_RZ } from './tableGeometry';
 const FELT_TOP_Y = 0.153;
 
 /** Pasa proportions: a long bar with a square cross-section. */
-const DIE_LEN = 0.68;
-const DIE_W = 0.22;
+const DIE_LEN = 0.48;
+const DIE_W = 0.16;
 
 const REST_Y_FLAT = FELT_TOP_Y + DIE_W / 2;
 const REST_Y_ON_END = FELT_TOP_Y + DIE_LEN / 2;
 
 /** Height the dice tumble at before they drop. */
-const TUMBLE_Y = FELT_TOP_Y + 0.62;
+const TUMBLE_Y = FELT_TOP_Y + 0.58;
 
 /** The dice keep tumbling this long even if the server answers immediately. */
 const MIN_TUMBLE_S = 0.85;
@@ -33,10 +33,10 @@ const TABLE_NEAR_HAND_Z = 2.05;
 
 type NumberFace = 1 | 3 | 4 | 6;
 
-/** Where each die comes to rest — side by side, mirroring the reference. */
+/** Where each die comes to rest at initial load — comfortably separated in the middle of the table. */
 const REST_SPOTS: Array<{ x: number; z: number; yaw: number }> = [
-  { x: -0.21, z: -0.25, yaw: -0.14 },
-  { x: 0.23, z: 0.26, yaw: 0.09 },
+  { x: -0.30, z: 0.03, yaw: -0.22 },
+  { x: 0.30, z: 0.03, yaw: 0.18 },
 ];
 
 /**
@@ -109,7 +109,7 @@ function usePipTextures() {
 function DieBody({ pips }: { pips: Record<NumberFace, THREE.Texture> }) {
   return (
     <>
-      <RoundedBox args={[DIE_LEN, DIE_W, DIE_W]} radius={0.042} smoothness={4} castShadow receiveShadow>
+      <RoundedBox args={[DIE_LEN, DIE_W, DIE_W]} radius={0.03} smoothness={4} castShadow receiveShadow>
         <meshStandardMaterial color="#f5f5f5" roughness={0.45} metalness={0} envMapIntensity={0.4} />
       </RoundedBox>
       {LONG_FACES.map((f) => (
@@ -190,6 +190,7 @@ type DieAnim = {
   restPos: THREE.Vector3;
   throwFrom: THREE.Vector3;
   throwTo: THREE.Vector3;
+  restYaw: number;
 };
 
 function newDieAnim(): DieAnim {
@@ -203,6 +204,7 @@ function newDieAnim(): DieAnim {
     restPos: new THREE.Vector3(),
     throwFrom: new THREE.Vector3(),
     throwTo: new THREE.Vector3(),
+    restYaw: 0,
   };
 }
 
@@ -340,42 +342,78 @@ export function TableDice3D({
     const len = Math.hypot(dirX, dirZ) || 1;
     const nx = dirX / len;
     const nz = dirZ / len;
-    // Stronger stroke → longer travel across the felt (pool-like).
-    const travel = 1.4 + speed * 3.2;
-    const duration = THREE.MathUtils.clamp(0.38 + (1.25 - speed) * 0.22, 0.38, 0.72);
-    const from = trayAnchor();
-    // Perpendicular offset so both dice travel as a pair.
+    // Perpendicular vector for lateral dispersion
     const px = -nz;
     const pz = nx;
+    const from = trayAnchor();
 
-    let landX = from.x + nx * travel;
-    let landZ = from.z + nz * travel;
-    const padX = FELT_RX * 0.72;
-    const padZ = FELT_RZ * 0.72;
-    landX = THREE.MathUtils.clamp(landX, -padX, padX);
-    landZ = THREE.MathUtils.clamp(landZ, -padZ, padZ);
+    // Natural forward travel distance across the felt
+    const baseTravel = 1.2 + speed * 2.8;
+    const duration = THREE.MathUtils.clamp(0.38 + (1.25 - speed) * 0.22, 0.38, 0.70);
+
+    // Natural random separation between dice:
+    // 1. Lateral gap between dice centers: randomly from 0.42 to 0.82 units
+    // (sometimes closer, sometimes wider apart, but never overlapping)
+    const lateralGap = 0.42 + Math.random() * 0.40;
+    const sideA = -lateralGap / 2 + (Math.random() - 0.5) * 0.08;
+    const sideB = lateralGap / 2 + (Math.random() - 0.5) * 0.08;
+
+    // 2. Longitudinal stagger along the throw direction
+    const stagger = (Math.random() - 0.5) * 0.36;
+    const travelA = baseTravel + stagger;
+    const travelB = baseTravel - stagger;
+
+    let landAX = from.x + nx * travelA + px * sideA;
+    let landAZ = from.z + nz * travelA + pz * sideA;
+    let landBX = from.x + nx * travelB + px * sideB;
+    let landBZ = from.z + nz * travelB + pz * sideB;
+
+    // 3. Central table area bounds (safely clear of player profile badges)
+    const padX = FELT_RX * 0.42;
+    const padZ = FELT_RZ * 0.30;
+    landAX = THREE.MathUtils.clamp(landAX, -padX, padX);
+    landAZ = THREE.MathUtils.clamp(landAZ, -padZ, padZ);
+    landBX = THREE.MathUtils.clamp(landBX, -padX, padX);
+    landBZ = THREE.MathUtils.clamp(landBZ, -padZ, padZ);
+
+    // 4. Strict collision separation guarantee:
+    // With DIE_LEN = 0.48, distance between centers must be at least 0.42
+    const MIN_SEP = 0.44;
+    const sepX = landBX - landAX;
+    const sepZ = landBZ - landAZ;
+    const curDist = Math.hypot(sepX, sepZ);
+    if (curDist < MIN_SEP) {
+      const needed = (MIN_SEP - Math.max(curDist, 0.001)) / 2;
+      const ux = curDist > 0.001 ? sepX / curDist : px;
+      const uz = curDist > 0.001 ? sepZ / curDist : pz;
+      landAX = THREE.MathUtils.clamp(landAX - ux * needed, -padX, padX);
+      landAZ = THREE.MathUtils.clamp(landAZ - uz * needed, -padZ, padZ);
+      landBX = THREE.MathUtils.clamp(landBX + ux * needed, -padX, padX);
+      landBZ = THREE.MathUtils.clamp(landBZ + uz * needed, -padZ, padZ);
+    }
+
+    const landingPoints = [
+      { x: landAX, z: landAZ },
+      { x: landBX, z: landBZ },
+    ];
 
     a.phase = 'throw';
     a.clock = 0;
     a.landed = false;
     a.throwDuration = duration;
-    // Keep any faces already stashed from a fast server response.
 
     gs.forEach((g, i) => {
       const d = a.dice[i]!;
       const off = BOX_OFFSETS[i]!;
-      const side = i === 0 ? -0.22 : 0.22;
+      const target = landingPoints[i]!;
       if (trayVisible || g.position.y > REST_Y_FLAT + 0.15) {
         d.throwFrom.set(from.x + off[0], from.y + off[1], from.z + off[2]);
       } else {
         d.throwFrom.copy(g.position);
       }
-      d.throwTo.set(
-        landX + px * side,
-        TUMBLE_Y,
-        landZ + pz * side,
-      );
-      d.restPos.set(d.throwTo.x, REST_Y_FLAT, d.throwTo.z);
+      d.throwTo.set(target.x, TUMBLE_Y, target.z);
+      d.restPos.set(target.x, REST_Y_FLAT, target.z);
+      d.restYaw = (Math.random() - 0.5) * 0.9 + (Math.random() < 0.5 ? 0 : Math.PI);
       d.axis.copy(randomTumbleAxis());
       d.spin = 14 + speed * 6 + i * 1.4;
       d.hoverPhase = i * 1.4;
@@ -397,11 +435,9 @@ export function TableDice3D({
     gs.forEach((g, i) => {
       const d = a.dice[i]!;
       const face = faces[i]!;
-      const yaw = REST_SPOTS[i]!.yaw + (i === 0 ? -0.08 : 0.08);
       d.from.copy(g.quaternion);
-      d.to.copy(faceUpQuaternion(face, yaw));
+      d.to.copy(faceUpQuaternion(face, d.restYaw));
       d.fromPos.copy(g.position);
-      // Settle face-up where they landed — not snapped back to table centre.
       d.restPos.set(d.throwTo.x, restYFor(face), d.throwTo.z);
       g.scale.setScalar(1);
     });
@@ -450,14 +486,14 @@ export function TableDice3D({
     if (mode === 'player_throw' && throwRequest) return;
     if (phase === 'rest' || phase === 'in_box') {
       const from = trayAnchor();
-      // Aim from roller seat toward the table centre (any residual yaw is light).
+      // Aim toward the table centre (0, 0)
       let dirX = -from.x;
       let dirZ = -from.z;
       if (Math.hypot(dirX, dirZ) < 0.05) {
         dirX = (Math.random() - 0.5) * 0.4;
         dirZ = -1;
       }
-      beginThrow(dirX, dirZ, 0.85, true);
+      beginThrow(dirX, dirZ, 0.45, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rolling, mode]);

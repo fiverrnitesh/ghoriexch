@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { adminApi, type DashboardStats } from '../lib/admin-api';
-import { PageHeader, SandboxBanner } from '../components/AdminLayout';
+import { PageHeader } from '../components/AdminLayout';
 
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -30,12 +29,6 @@ export function DashboardPage() {
   return (
     <div>
       <PageHeader title="Dashboard" subtitle="Platform overview and recent activity" />
-      {stats.sandboxMode && <SandboxBanner message="Wallet sandbox mode is active. All balances are simulated — NOT real money." />}
-      {stats.adminTestModeEnabled && (
-        <div className="env-banner env-banner--test" style={{ marginBottom: '1rem' }}>
-          <strong>ADMIN TEST MODE ENABLED</strong> — <Link to="/test-mode">Open test controls</Link>
-        </div>
-      )}
       <div className="stat-grid">
         {cards.map((c) => (
           <div key={c.label} className="panel stat-card">

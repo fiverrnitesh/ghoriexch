@@ -140,6 +140,9 @@ export interface DiceGameState {
   turnDeadlineAt: string | null;
   /** Idempotency key for the active turn timeout worker */
   turnTimerId: string | null;
+  /** Scheduled timestamp for when a standing (blank) die is allowed (once every 50-80 minutes) */
+  nextStandingDieAt?: string | null;
+  lastStandingDieAt?: string | null;
 }
 
 export interface DiceRoundResult {

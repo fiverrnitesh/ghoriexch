@@ -12,13 +12,10 @@ const NAV = [
   { path: '/bets', label: 'Bets' },
   { path: '/bots', label: 'Bots' },
   { path: '/audit-logs', label: 'Audit Logs' },
-  { path: '/test-mode', label: 'Test Mode' },
 ];
 
 export function AdminLayout({
   children,
-  sandboxMode,
-  testModeEnabled,
   onLogout,
 }: {
   children: React.ReactNode;
@@ -44,8 +41,6 @@ export function AdminLayout({
         <header className="admin-header">
           <h1>Platform Administration</h1>
           <div className="admin-header__badges">
-            {sandboxMode && <span className="badge badge--warn">SANDBOX WALLET</span>}
-            {testModeEnabled && <span className="badge badge--test">TEST MODE</span>}
             <span className="badge badge--gold">ADMIN</span>
           </div>
         </header>

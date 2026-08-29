@@ -151,7 +151,7 @@ export async function ensureDefaultSeedData(prisma: PrismaClient): Promise<void>
     });
 
     // 7. Ensure MASTER user
-    const master = await prisma.user.upsert({
+    await prisma.user.upsert({
       where: { email: 'master1@ghoriexch.local' },
       update: { parentId: superMaster.id },
       create: {
@@ -173,39 +173,34 @@ export async function ensureDefaultSeedData(prisma: PrismaClient): Promise<void>
       },
     });
 
-    // 8. Ensure Player 1 and Rahul
-    const defaultPlayers = [
-      { email: 'player1@games.local', username: 'player1', displayName: 'Player One', balance: 25000, avatarSeed: 'playerone' },
-      { email: 'rahul@games.local', username: 'rahul', displayName: 'Rahul', balance: 30000, avatarSeed: 'rahul' },
-      { email: 'tanya@games.local', username: 'tanya', displayName: 'Tanya', balance: 25000, avatarSeed: 'tanya' },
-      { email: 'rohit@games.local', username: 'rohit', displayName: 'Rohit', balance: 50000, avatarSeed: 'rohit' },
-      { email: 'sneha@games.local', username: 'sneha', displayName: 'Sneha', balance: 90000, avatarSeed: 'sneha' },
-    ];
+    // 8. Clean up any legacy demo dummy rooms or demo dummy players
+    try {
+      const demoEmails = [
+        'player1@games.local',
+        'rahul@games.local',
+        'tanya@games.local',
+        'rohit@games.local',
+        'sneha@games.local',
+        'arjun@games.local',
+        'priya@games.local',
+        'vikram@games.local',
+        'neha@games.local',
+      ];
+      // Only remove if they are untouched demo users
+      await prisma.user.deleteMany({
+        where: { email: { in: demoEmails } },
+      }).catch(() => {});
 
-    for (const u of defaultPlayers) {
-      const avatarUrl = `https://api.dicebear.com/7.x/personas/svg?seed=${u.avatarSeed}`;
-      await prisma.user.upsert({
-        where: { email: u.email },
-        update: {},
-        create: {
-          email: u.email,
-          username: u.username,
-          displayName: u.displayName,
-          avatarUrl,
-          passwordHash,
-          status: UserStatus.ACTIVE,
-          parentId: master.id,
-          roles: { create: [{ roleId: rolesMap.USER.id }] },
-          wallet: {
-            create: {
-              balance: u.balance,
-              availableBalance: u.balance,
-              lockedBalance: 0,
-              currency: 'USD',
-            },
-          },
+      await prisma.room.deleteMany({
+        where: {
+          OR: [
+            { code: { in: ['DEMO-DICE-01', 'SIM-DICE-01'] } },
+            { name: { in: ['Demo Room', 'Dice Demo', '6-Player Demo', 'Simulation Room'] } },
+          ],
         },
-      });
+      }).catch(() => {});
+    } catch {
+      // ignore cleanup errors
     }
 
     // 9. Ensure Games exist

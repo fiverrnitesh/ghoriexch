@@ -3,6 +3,10 @@ import type { DieFace, DiceConfig } from './dice.types.js';
 /** Custom physical die faces — NOT standard 1-6 dice */
 export const DIE_FACES: DieFace[] = [1, 3, 4, 6, 'BLANK', 'BLANK'];
 
+/** Standing die (blank end face) interval in minutes — average once per hour (50–80 mins) */
+export const STANDING_DIE_MIN_INTERVAL_MINUTES = 50;
+export const STANDING_DIE_MAX_INTERVAL_MINUTES = 80;
+
 /** Physical opposite-face relationships on custom dice (not standard 1–6 cube) */
 export const OPPOSITE_FACES: Record<Exclude<DieFace, 'BLANK'>, Exclude<DieFace, 'BLANK'>> = {
   1: 6,

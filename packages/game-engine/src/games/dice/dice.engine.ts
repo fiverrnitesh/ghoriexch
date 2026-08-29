@@ -28,6 +28,7 @@ import {
   removeUserFromSeats,
   resolveMainBetChoice,
   rollDicePair,
+  getRandomStandingIntervalMs,
   rotateAfterLoss,
   rotateAfterWin,
   roundMoney,
@@ -595,7 +596,19 @@ export class DiceGameEngine extends BaseGameEngine {
     state.phase = 'DICE_ROLLING';
     events.push(this.createEvent('dice:rolling', {}));
 
-    const dice = state.forcedDice ?? rollDicePair();
+    let allowStanding = false;
+    if (state.nextStandingDieAt) {
+      const scheduledTime = new Date(state.nextStandingDieAt).getTime();
+      if (nowMs >= scheduledTime) {
+        allowStanding = true;
+        state.lastStandingDieAt = new Date(nowMs).toISOString();
+        state.nextStandingDieAt = new Date(nowMs + getRandomStandingIntervalMs()).toISOString();
+      }
+    } else {
+      state.nextStandingDieAt = new Date(nowMs + getRandomStandingIntervalMs()).toISOString();
+    }
+
+    const dice = state.forcedDice ?? rollDicePair(undefined, allowStanding);
     state.forcedDice = null;
     state.dice = dice;
     state.phase = 'RESULT';

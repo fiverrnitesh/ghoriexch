@@ -1,5 +1,10 @@
 import { randomInt } from 'node:crypto';
-import { DIE_FACES } from './dice.constants.js';
+import {
+  DIE_FACES,
+  NUMBERED_FACES,
+  STANDING_DIE_MIN_INTERVAL_MINUTES,
+  STANDING_DIE_MAX_INTERVAL_MINUTES,
+} from './dice.constants.js';
 import type {
   ActiveMatch,
   DieFace,
@@ -16,24 +21,41 @@ function secureUnit(): number {
   return randomInt(1_000_000_000) / 1_000_000_000;
 }
 
+export function getRandomStandingIntervalMs(rng: () => number = secureUnit): number {
+  const minMs = STANDING_DIE_MIN_INTERVAL_MINUTES * 60 * 1000;
+  const maxMs = STANDING_DIE_MAX_INTERVAL_MINUTES * 60 * 1000;
+  return minMs + Math.floor(rng() * (maxMs - minMs));
+}
+
+export function rollNumberedDie(rng: () => number = secureUnit): Exclude<DieFace, 'BLANK'> {
+  const idx = Math.floor(rng() * NUMBERED_FACES.length);
+  return NUMBERED_FACES[idx]!;
+}
+
 export function rollDie(rng: () => number = secureUnit): DieFace {
   const idx = Math.floor(rng() * DIE_FACES.length);
   return DIE_FACES[idx]!;
 }
 
-/** Two independent dice. BLANK+BLANK is rejected and rerolled. */
-export function rollDicePair(rng: () => number = secureUnit): [DieFace, DieFace] {
-  let a = rollDie(rng);
-  let b = rollDie(rng);
-  let guard = 0;
-  while (a === 'BLANK' && b === 'BLANK' && guard < 64) {
-    b = rollDie(rng);
-    guard += 1;
+export function rollStandingDicePair(rng: () => number = secureUnit): [DieFace, DieFace] {
+  const numbered = rollNumberedDie(rng);
+  return rng() < 0.5 ? ['BLANK', numbered] : [numbered, 'BLANK'];
+}
+
+/**
+ * Rolls a pair of dice:
+ * - If allowStandingDie is false (normal rolls): both dice roll standard numbers (1, 3, 4, 6)
+ * - If allowStandingDie is true (once every 50–80 mins): one die is standing (BLANK) and one is numbered
+ * - BLANK+BLANK is never possible.
+ */
+export function rollDicePair(
+  rng: () => number = secureUnit,
+  allowStandingDie: boolean = false,
+): [DieFace, DieFace] {
+  if (allowStandingDie) {
+    return rollStandingDicePair(rng);
   }
-  if (a === 'BLANK' && b === 'BLANK') {
-    b = 1;
-  }
-  return [a, b];
+  return [rollNumberedDie(rng), rollNumberedDie(rng)];
 }
 
 export type DiceFaceResolution =
@@ -529,6 +551,7 @@ export function removeUserFromSeats(seats: DiceSeat[], userId: string): DiceSeat
 export function createInitialState(
   config: DiceGameState['config'],
   maxSeats = diceTableSeatCount(config.maxPlayers),
+  nowMs = Date.now(),
 ): DiceGameState {
   return {
     phase: 'WAITING_FOR_PLAYERS',
@@ -554,6 +577,8 @@ export function createInitialState(
     turnStartedAt: null,
     turnDeadlineAt: null,
     turnTimerId: null,
+    nextStandingDieAt: new Date(nowMs + getRandomStandingIntervalMs()).toISOString(),
+    lastStandingDieAt: null,
   };
 }
 

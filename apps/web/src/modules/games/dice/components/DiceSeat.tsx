@@ -23,7 +23,13 @@ export interface DiceSeatView {
   clickable?: boolean;
   balance?: string | null;
   onClick?: () => void;
+  timerSeconds?: number;
+  timerMaxSeconds?: number;
+  timerActive?: boolean;
 }
+
+const TIMER_RADIUS = 46;
+const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 
 export function DiceSeat({
   visualSlot,
@@ -40,6 +46,9 @@ export function DiceSeat({
   clickable,
   balance,
   onClick,
+  timerSeconds,
+  timerMaxSeconds = 15,
+  timerActive,
 }: DiceSeatView) {
   const far = isFarVisualSlot(visualSlot);
 
@@ -55,6 +64,20 @@ export function DiceSeat({
       : isDiceHolder
         ? 'TURN'
         : null;
+
+  const hasTimer = Boolean(timerActive && timerSeconds !== undefined && timerSeconds >= 0);
+  const currentSec = Math.max(0, timerSeconds ?? 0);
+  const maxSec = Math.max(1, timerMaxSeconds ?? 15);
+  const ratio = Math.min(1, Math.max(0, currentSec / maxSec));
+  const strokeDashoffset = TIMER_CIRCUMFERENCE * (1 - ratio);
+
+  // Color logic:
+  // Starts green -> turns yellow when time is little remaining (<= 8s or <= 40%) -> turns red when <= 5s
+  const timerColorClass = currentSec <= 5
+    ? 'dice-seat__timer--danger'
+    : currentSec <= 8 || ratio <= 0.45
+      ? 'dice-seat__timer--warning'
+      : 'dice-seat__timer--normal';
 
   return (
     <div
@@ -77,7 +100,27 @@ export function DiceSeat({
       onClick={clickable ? (e) => { e.stopPropagation(); onClick?.(); } : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } } : undefined}
     >
-      <div className="dice-seat__avatar-wrap">
+      <div className={`dice-seat__avatar-wrap ${hasTimer ? `dice-seat__avatar-wrap--timer ${timerColorClass}` : ''}`}>
+        {hasTimer ? (
+          <svg className="dice-seat__timer-svg" viewBox="0 0 100 100">
+            <circle
+              className="dice-seat__timer-track"
+              cx="50"
+              cy="50"
+              r={TIMER_RADIUS}
+            />
+            <circle
+              className="dice-seat__timer-circle"
+              cx="50"
+              cy="50"
+              r={TIMER_RADIUS}
+              style={{
+                strokeDasharray: TIMER_CIRCUMFERENCE,
+                strokeDashoffset,
+              }}
+            />
+          </svg>
+        ) : null}
         <UserAvatar
           name={name}
           imageUrl={avatarUrl}
@@ -85,7 +128,11 @@ export function DiceSeat({
           highlight={!!(isDiceHolder || isYourTurn || isWinner)}
           className="dice-seat__avatar"
         />
-        {status ? <span className="dice-seat__status">{status}</span> : null}
+        {hasTimer ? (
+          <span className="dice-seat__timer-badge">{currentSec}s</span>
+        ) : status ? (
+          <span className="dice-seat__status">{status}</span>
+        ) : null}
       </div>
       <div className="dice-seat__plate">
         <span className="dice-seat__name">{shortName}</span>

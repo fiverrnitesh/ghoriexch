@@ -175,56 +175,21 @@ async function seedUsers() {
     },
   });
 
-  // 7. Level 7: PLAYERS / USERS
-  const demoPlayers = [
-    { email: 'player1@games.local', username: 'player1', displayName: 'Player One', balance: 25000, avatarSeed: 'playerone', parentId: master.id },
-    { email: 'rahul@games.local', username: 'rahul', displayName: 'Rahul', balance: 30000, avatarSeed: 'rahul', parentId: master.id },
-    { email: 'tanya@games.local', username: 'tanya', displayName: 'Tanya', balance: 25000, avatarSeed: 'tanya', parentId: master.id },
-    { email: 'rohit@games.local', username: 'rohit', displayName: 'Rohit', balance: 50000, avatarSeed: 'rohit', parentId: master.id },
-    { email: 'sneha@games.local', username: 'sneha', displayName: 'Sneha', balance: 90000, avatarSeed: 'sneha', parentId: master.id },
-    { email: 'arjun@games.local', username: 'arjun', displayName: 'Arjun', balance: 40000, avatarSeed: 'arjun', parentId: master.id },
-    { email: 'priya@games.local', username: 'priya', displayName: 'Priya', balance: 35000, avatarSeed: 'priya', parentId: master.id },
-    { email: 'vikram@games.local', username: 'vikram', displayName: 'Vikram', balance: 45000, avatarSeed: 'vikram', parentId: master.id },
-    { email: 'neha@games.local', username: 'neha', displayName: 'Neha', balance: 60000, avatarSeed: 'neha', parentId: master.id },
+  // 7. Cleanup old demo dummy players if any
+  const demoEmails = [
+    'player1@games.local',
+    'rahul@games.local',
+    'tanya@games.local',
+    'rohit@games.local',
+    'sneha@games.local',
+    'arjun@games.local',
+    'priya@games.local',
+    'vikram@games.local',
+    'neha@games.local',
   ];
-
-  for (const u of demoPlayers) {
-    const avatarUrl = `https://api.dicebear.com/7.x/personas/svg?seed=${u.avatarSeed}`;
-    await prisma.user.upsert({
-      where: { email: u.email },
-      update: {
-        displayName: u.displayName,
-        avatarUrl,
-        parentId: u.parentId,
-        wallet: {
-          update: {
-            balance: u.balance,
-            availableBalance: u.balance,
-            lockedBalance: 0,
-            currency: 'USD',
-          },
-        },
-      },
-      create: {
-        email: u.email,
-        username: u.username,
-        displayName: u.displayName,
-        avatarUrl,
-        passwordHash,
-        status: UserStatus.ACTIVE,
-        parentId: u.parentId,
-        roles: { create: [{ roleId: rolesMap.USER.id }] },
-        wallet: {
-          create: {
-            balance: u.balance,
-            availableBalance: u.balance,
-            lockedBalance: 0,
-            currency: 'USD',
-          },
-        },
-      },
-    });
-  }
+  await prisma.user.deleteMany({
+    where: { email: { in: demoEmails } },
+  }).catch(() => {});
 }
 
 async function seedGames() {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi, type Paginated } from '../lib/admin-api';
 import { PageHeader, DataTable, StatusBadge, Pagination } from '../components/AdminLayout';
@@ -16,6 +16,15 @@ interface UserRow {
   createdAt: string;
 }
 
+interface HierarchyInfo {
+  role: string;
+  level: number;
+  allowedChildRoles: string[];
+  defaultChildRole: string | null;
+  isUnlimited: boolean;
+  balance: string;
+}
+
 const ROLE_COLORS: Record<string, string> = {
   COMPANY: 'badge--gold',
   PANEL: 'badge--test',
@@ -26,21 +35,33 @@ const ROLE_COLORS: Record<string, string> = {
   USER: 'badge--ghost',
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  COMPANY: 'Level 1: Company',
+  PANEL: 'Level 2: Panel',
+  SUPER_ADMIN: 'Level 3: Super Admin',
+  ADMIN: 'Level 4: Admin',
+  SUPER_MASTER: 'Level 5: Super Master',
+  MASTER: 'Level 6: Master',
+  USER: 'Level 7: User (Player)',
+};
+
 export function UsersPage() {
   const [data, setData] = useState<Paginated<UserRow> | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [hierarchyInfo, setHierarchyInfo] = useState<HierarchyInfo | null>(null);
 
   // Quick Create Modal State
   const [createOpen, setCreateOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
-  const [newRole, setNewRole] = useState('PANEL');
+  const [newRole, setNewRole] = useState('USER');
   const [newInitialCoins, setNewInitialCoins] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [createSuccess, setCreateSuccess] = useState('');
 
   // Transfer Coins Modal State
   const [transferTarget, setTransferTarget] = useState<UserRow | null>(null);
@@ -48,24 +69,53 @@ export function UsersPage() {
   const [transferDirection, setTransferDirection] = useState<'deposit' | 'withdraw'>('deposit');
   const [transferring, setTransferring] = useState(false);
 
-  const loadUsers = () => {
+  const loadUsers = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(page) });
-    if (search) params.set('search', search);
+    if (search.trim()) params.set('search', search.trim());
+
     adminApi.get<Paginated<UserRow>>(`/api/admin/users?${params}`)
-      .then(setData)
-      .catch(console.error)
+      .then((res) => {
+        setData(res);
+      })
+      .catch((err) => {
+        console.warn('Admin user list fetch fallback:', err);
+        adminApi.get<Paginated<UserRow>>(`/api/agent/downlines?${params}`)
+          .then(setData)
+          .catch(console.error);
+      })
       .finally(() => setLoading(false));
-  };
+  }, [page, search]);
 
   useEffect(() => {
     loadUsers();
-  }, [page, search]);
+  }, [loadUsers]);
+
+  useEffect(() => {
+    adminApi.get<HierarchyInfo>('/api/agent/hierarchy-info')
+      .then((info) => {
+        setHierarchyInfo(info);
+        if (info.allowedChildRoles && info.allowedChildRoles.length > 0) {
+          setNewRole(info.defaultChildRole || info.allowedChildRoles[0] || 'USER');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenCreate = () => {
+    setCreateError('');
+    setCreateSuccess('');
+    if (hierarchyInfo?.allowedChildRoles && hierarchyInfo.allowedChildRoles.length > 0) {
+      setNewRole(hierarchyInfo.defaultChildRole || hierarchyInfo.allowedChildRoles[0] || 'USER');
+    }
+    setCreateOpen(true);
+  };
 
   const handleCreateDownline = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     setCreateError('');
+    setCreateSuccess('');
     try {
       await adminApi.post('/api/agent/downlines', {
         username: newUsername.trim(),
@@ -74,12 +124,16 @@ export function UsersPage() {
         displayName: newDisplayName.trim() || undefined,
         initialCoins: newInitialCoins ? Number(newInitialCoins) : 0,
       });
-      setCreateOpen(false);
-      setNewUsername('');
-      setNewPassword('');
-      setNewDisplayName('');
-      setNewInitialCoins('');
-      loadUsers();
+      setCreateSuccess(`Account @${newUsername.trim()} created successfully!`);
+      setTimeout(() => {
+        setCreateOpen(false);
+        setNewUsername('');
+        setNewPassword('');
+        setNewDisplayName('');
+        setNewInitialCoins('');
+        setCreateSuccess('');
+        loadUsers();
+      }, 800);
     } catch (err) {
       setCreateError((err as Error).message);
     } finally {
@@ -108,25 +162,40 @@ export function UsersPage() {
     }
   };
 
+  const availableRoles = hierarchyInfo?.allowedChildRoles?.length
+    ? hierarchyInfo.allowedChildRoles
+    : ['PANEL', 'SUPER_ADMIN', 'ADMIN', 'SUPER_MASTER', 'MASTER', 'USER'];
+
   return (
     <div>
       <PageHeader
         title="Agent Hierarchy & User Management"
         subtitle="7-Tier Betting Exchange Tree (Company → Panel → Super Admin → Admin → Super Master → Master → User)"
         actions={
-          <button type="button" className="btn btn--gold" onClick={() => setCreateOpen(true)}>
-            + Create Hierarchy User
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="button" className="btn btn--ghost" onClick={loadUsers} title="Refresh users list">
+              ↻ Refresh
+            </button>
+            <button type="button" className="btn btn--gold" onClick={handleOpenCreate}>
+              + Create Hierarchy User
+            </button>
+          </div>
         }
       />
 
-      <div className="toolbar panel">
+      <div className="toolbar panel" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
         <input
           className="input"
-          placeholder="Search by username, display name..."
+          placeholder="Search by username, display name, or email..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          style={{ maxWidth: '380px' }}
         />
+        {data && (
+          <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+            Total users: <strong>{data.total}</strong>
+          </span>
+        )}
       </div>
 
       <DataTable
@@ -221,24 +290,24 @@ export function UsersPage() {
         ]}
         rows={(data?.items ?? []) as unknown as Record<string, unknown>[]}
       />
-      {data && <Pagination page={data.page} totalPages={data.totalPages} onPage={setPage} />}
+      {data && data.totalPages > 1 && <Pagination page={data.page} totalPages={data.totalPages} onPage={setPage} />}
 
       {/* Modal: Create Hierarchy Downline */}
       {createOpen && (
-        <div className="login-page" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '1rem' }}>
-          <div className="panel login-card" style={{ maxWidth: '480px' }}>
+        <div className="login-page" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="panel login-card" style={{ maxWidth: '480px', width: '100%' }}>
             <h2 style={{ color: '#f5c842', marginBottom: '1rem' }}>Create Hierarchy User</h2>
             {createError && <div className="login-error">{createError}</div>}
+            {createSuccess && <div style={{ color: '#4ade80', marginBottom: '0.75rem', fontSize: '0.9rem' }}>{createSuccess}</div>}
             <form className="login-form" onSubmit={handleCreateDownline}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.8rem', color: '#a89888' }}>
                 Role Level:
                 <select className="input" value={newRole} onChange={(e) => setNewRole(e.target.value)}>
-                  <option value="PANEL">Level 2: Panel</option>
-                  <option value="SUPER_ADMIN">Level 3: Super Admin</option>
-                  <option value="ADMIN">Level 4: Admin</option>
-                  <option value="SUPER_MASTER">Level 5: Super Master</option>
-                  <option value="MASTER">Level 6: Master</option>
-                  <option value="USER">Level 7: User (Player)</option>
+                  {availableRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role] || role}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -273,8 +342,8 @@ export function UsersPage() {
 
       {/* Modal: Transfer Coins */}
       {transferTarget && (
-        <div className="login-page" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '1rem' }}>
-          <div className="panel login-card" style={{ maxWidth: '420px' }}>
+        <div className="login-page" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="panel login-card" style={{ maxWidth: '420px', width: '100%' }}>
             <h2 style={{ color: '#f5c842', marginBottom: '0.5rem' }}>
               {transferDirection === 'deposit' ? 'Give Coins' : 'Recall Coins'}
             </h2>
