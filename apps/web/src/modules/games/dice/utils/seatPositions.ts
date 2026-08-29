@@ -51,14 +51,14 @@ const P6_POS = { x: X_COL4, z: FAR_Z };  // col 4: far right
 const FAR_SEAT_Y = 0.16;
 
 const SLOT_LAYOUT = [
-  { x: P1_POS.x, z: P1_POS.z, scale: 1.15, y: SEAT_Y - 0.1, depth: 1 }, // P1 (0) - self
-  { x: P5_POS.x, z: P5_POS.z, scale: 0.95, y: SEAT_Y, depth: 0.92 }, // P5 (1)
-  { x: P4_POS.x, z: P4_POS.z, scale: 0.80, y: FAR_SEAT_Y, depth: 0.18 }, // P4 (2)
-  { x: P2_POS.x, z: P2_POS.z, scale: 0.84, y: FAR_SEAT_Y, depth: 0 }, // P2 (3) - Shoot
-  { x: P7_POS.x, z: P7_POS.z, scale: 0.84, y: FAR_SEAT_Y, depth: 0 }, // P7 (4)
-  { x: P6_POS.x, z: P6_POS.z, scale: 0.80, y: FAR_SEAT_Y, depth: 0.18 }, // P6 (5)
-  { x: P8_POS.x, z: P8_POS.z, scale: 0.95, y: SEAT_Y, depth: 0.92 }, // P8 (6)
-  { x: P3_POS.x, z: P3_POS.z, scale: 0.95, y: SEAT_Y, depth: 0.92 }, // P3 (7)
+  { x: P1_POS.x, z: P1_POS.z, scale: 1.0, y: SEAT_Y - 0.1, depth: 1 }, // P1 (0) - self
+  { x: P5_POS.x, z: P5_POS.z, scale: 1.0, y: SEAT_Y - 0.1, depth: 0.92 }, // P5 (1)
+  { x: P4_POS.x, z: P4_POS.z, scale: 1.05, y: FAR_SEAT_Y, depth: 0.18 }, // P4 (2)
+  { x: P2_POS.x, z: P2_POS.z, scale: 1.05, y: FAR_SEAT_Y, depth: 0 }, // P2 (3) - Shoot
+  { x: P7_POS.x, z: P7_POS.z, scale: 1.05, y: FAR_SEAT_Y, depth: 0 }, // P7 (4)
+  { x: P6_POS.x, z: P6_POS.z, scale: 1.05, y: FAR_SEAT_Y, depth: 0.18 }, // P6 (5)
+  { x: P8_POS.x, z: P8_POS.z, scale: 1.0, y: SEAT_Y - 0.1, depth: 0.92 }, // P8 (6)
+  { x: P3_POS.x, z: P3_POS.z, scale: 1.0, y: SEAT_Y - 0.1, depth: 0.92 }, // P3 (7)
 ] as const;
 
 /** Remaining slots for players once self (P1) and Shoot bot (P2) are placed. */

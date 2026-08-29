@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '../../../../design-system';
 import { formatCurrency } from '../utils/seatPositions';
-import { CHIP_COLORS, chipPresets } from './DiceControls';
+import { chipPresets } from './DiceControls';
 import './DiceControls.css';
 import './SideBetModals.css';
 
@@ -92,21 +92,20 @@ export function DiceMainBetModal({
         </div>
 
         <span className="dice-sidebet-modal__label">CHIP PRESETS</span>
-        <div className="dice-controls__chips-row" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
+        <div className="dice-sidebet-modal__chips-grid">
           {chips.map((val) => {
             const isSelected = amount === val && !customAmount;
-            const chipClass = CHIP_COLORS[val] ?? 'ds-chip--gold';
             return (
               <button
                 key={val}
                 type="button"
-                className={`ds-chip ${chipClass} ${isSelected ? 'ds-chip--selected' : ''}`}
+                className={`dice-sidebet-modal__chip-btn ${isSelected ? 'dice-sidebet-modal__chip-btn--active' : ''}`}
                 onClick={() => {
                   setAmount(val);
                   setCustomAmount('');
                 }}
               >
-                <span className="ds-chip__val">{fmt(val)}</span>
+                {fmt(val)}
               </button>
             );
           })}
@@ -119,7 +118,7 @@ export function DiceMainBetModal({
           max={maxBet}
           inputMode="decimal"
           className="ds-input"
-          style={{ width: '100%', marginBottom: '1rem' }}
+          style={{ width: '100%', marginBottom: '1.25rem' }}
           placeholder={`${minBet} – ${maxBet}`}
           value={customAmount}
           onChange={(e) => {
@@ -140,7 +139,7 @@ export function DiceMainBetModal({
         <div className="dice-sidebet-modal__actions">
           <button
             type="button"
-            className="ds-btn ds-btn--outline"
+            className="ds-btn ds-btn--secondary"
             onClick={onClose}
             disabled={pending}
           >

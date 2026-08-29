@@ -10,8 +10,8 @@ import { FELT_RX, FELT_RZ } from './tableGeometry';
 const FELT_TOP_Y = 0.153;
 
 /** Pasa proportions: a long bar with a square cross-section. */
-const DIE_LEN = 0.86;
-const DIE_W = 0.28;
+const DIE_LEN = 0.68;
+const DIE_W = 0.22;
 
 const REST_Y_FLAT = FELT_TOP_Y + DIE_W / 2;
 const REST_Y_ON_END = FELT_TOP_Y + DIE_LEN / 2;
@@ -109,7 +109,7 @@ function usePipTextures() {
 function DieBody({ pips }: { pips: Record<NumberFace, THREE.Texture> }) {
   return (
     <>
-      <RoundedBox args={[DIE_LEN, DIE_W, DIE_W]} radius={0.055} smoothness={4} castShadow receiveShadow>
+      <RoundedBox args={[DIE_LEN, DIE_W, DIE_W]} radius={0.042} smoothness={4} castShadow receiveShadow>
         <meshStandardMaterial color="#f5f5f5" roughness={0.45} metalness={0} envMapIntensity={0.4} />
       </RoundedBox>
       {LONG_FACES.map((f) => (

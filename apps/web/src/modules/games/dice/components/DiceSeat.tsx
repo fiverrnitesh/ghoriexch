@@ -44,20 +44,7 @@ export function DiceSeat({
   const far = isFarVisualSlot(visualSlot);
 
   if (isEmpty) {
-    return (
-      <div
-        className={[
-          'dice-seat',
-          'dice-seat--world',
-          'dice-seat--empty',
-          far && 'dice-seat--far',
-        ].filter(Boolean).join(' ')}
-        aria-hidden="true"
-      >
-        <div className="dice-seat__avatar-wrap dice-seat__avatar-wrap--empty" />
-        <div className="dice-seat__plate dice-seat__plate--empty" />
-      </div>
-    );
+    return null;
   }
 
   const shortName = name.length > 11 ? `${name.slice(0, 10)}…` : name;
@@ -94,7 +81,7 @@ export function DiceSeat({
         <UserAvatar
           name={name}
           imageUrl={avatarUrl}
-          size={isSelf ? 'lg' : 'md'}
+          size="lg"
           highlight={!!(isDiceHolder || isYourTurn || isWinner)}
           className="dice-seat__avatar"
         />

@@ -372,11 +372,12 @@ export function DiceTable({
         <SeatHitTracker seats={seats} onHits={onHits} seatOutwardBoost={seatOutwardBoost} />
         {!domSeatOverlay
           ? seats.map((seat) => {
+              if (seat.isEmpty) return null;
               const slot = seat.visualSlot ?? 0;
               const pos = getSeatWorldPosition(slot, !!seat.isSelf, { outwardBoost: seatOutwardBoost });
               return (
                 <DiceSeatHtml
-                  key={seat.isEmpty ? `empty-${slot}` : seat.seatIndex}
+                  key={seat.seatIndex}
                   position={[pos.x, pos.y, pos.z]}
                   scale={pos.scale}
                   seat={seat}

@@ -327,17 +327,17 @@ export function createRailBumpCanvas() {
 
 /**
  * The reference background is a flat decorative wallpaper rather than a receding
- * floor: the purple diamond lattice keeps a constant scale top to bottom, with a
- * darker slatted band and a teal glow behind the dealer.
+ * floor: the dark red diamond lattice keeps a constant scale top to bottom, with a
+ * darker slatted band and warm ambient glow behind the dealer.
  */
 export function createRoomCanvas() {
   return makeCanvas(1600, 800, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#26102f');
-    g.addColorStop(0.16, '#4b1a56');
-    g.addColorStop(0.42, '#743087');
-    g.addColorStop(0.72, '#65267a');
-    g.addColorStop(1, '#4a1a5c');
+    g.addColorStop(0, '#1c0308');
+    g.addColorStop(0.16, '#380712');
+    g.addColorStop(0.42, '#520b1b');
+    g.addColorStop(0.72, '#420815');
+    g.addColorStop(1, '#24040a');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
@@ -347,7 +347,7 @@ export function createRoomCanvas() {
     ctx.translate(w / 2, h / 2);
     ctx.rotate(Math.PI / 4);
     ctx.translate(-w, -h);
-    ctx.strokeStyle = 'rgba(206, 122, 224, 0.34)';
+    ctx.strokeStyle = 'rgba(235, 75, 95, 0.28)';
     ctx.lineWidth = 2.4;
     for (let i = 0; i <= (w * 2) / step; i++) {
       ctx.beginPath();
@@ -359,7 +359,7 @@ export function createRoomCanvas() {
       ctx.lineTo(w * 2, i * step);
       ctx.stroke();
     }
-    ctx.fillStyle = 'rgba(220, 140, 236, 0.3)';
+    ctx.fillStyle = 'rgba(255, 115, 135, 0.24)';
     for (let y = 0; y <= (h * 2) / step; y++) {
       for (let x = 0; x <= (w * 2) / step; x++) {
         ctx.save();
@@ -374,35 +374,36 @@ export function createRoomCanvas() {
     // Slatted upper wall
     const bandH = h * 0.16;
     const band = ctx.createLinearGradient(0, 0, 0, bandH);
-    band.addColorStop(0, 'rgba(10, 4, 18, 0.88)');
-    band.addColorStop(0.72, 'rgba(16, 6, 26, 0.5)');
-    band.addColorStop(1, 'rgba(20, 8, 30, 0)');
+    band.addColorStop(0, 'rgba(12, 2, 4, 0.9)');
+    band.addColorStop(0.72, 'rgba(24, 4, 8, 0.55)');
+    band.addColorStop(1, 'rgba(32, 5, 12, 0)');
     ctx.fillStyle = band;
     ctx.fillRect(0, 0, w, bandH);
 
-    ctx.fillStyle = 'rgba(96, 44, 118, 0.34)';
+    ctx.fillStyle = 'rgba(110, 18, 32, 0.36)';
     for (let x = 0; x < w; x += 30) {
       ctx.fillRect(x, 0, 12, bandH * 0.82);
     }
 
-    // Teal accent glow behind the dealer
-    const teal = ctx.createRadialGradient(w * 0.5, h * 0.2, 10, w * 0.5, h * 0.2, w * 0.24);
-    teal.addColorStop(0, 'rgba(30, 130, 138, 0.5)');
-    teal.addColorStop(1, 'rgba(30, 130, 138, 0)');
-    ctx.fillStyle = teal;
+    // Warm accent glow behind the dealer
+    const rubyGlow = ctx.createRadialGradient(w * 0.5, h * 0.2, 10, w * 0.5, h * 0.2, w * 0.26);
+    rubyGlow.addColorStop(0, 'rgba(215, 45, 75, 0.35)');
+    rubyGlow.addColorStop(0.6, 'rgba(180, 25, 50, 0.15)');
+    rubyGlow.addColorStop(1, 'rgba(120, 15, 30, 0)');
+    ctx.fillStyle = rubyGlow;
     ctx.fillRect(0, 0, w, h * 0.5);
 
     // Warm pool of light where the table sits
     const pool = ctx.createRadialGradient(w * 0.5, h * 0.66, 20, w * 0.5, h * 0.66, w * 0.5);
-    pool.addColorStop(0, 'rgba(255, 190, 150, 0.14)');
-    pool.addColorStop(1, 'rgba(255, 190, 150, 0)');
+    pool.addColorStop(0, 'rgba(255, 200, 150, 0.12)');
+    pool.addColorStop(1, 'rgba(255, 200, 150, 0)');
     ctx.fillStyle = pool;
     ctx.fillRect(0, 0, w, h);
 
     // Corner falloff
     const vign = ctx.createRadialGradient(w * 0.5, h * 0.55, h * 0.2, w * 0.5, h * 0.55, w * 0.62);
     vign.addColorStop(0, 'rgba(0,0,0,0)');
-    vign.addColorStop(1, 'rgba(14, 3, 22, 0.42)');
+    vign.addColorStop(1, 'rgba(10, 2, 4, 0.48)');
     ctx.fillStyle = vign;
     ctx.fillRect(0, 0, w, h);
   });
