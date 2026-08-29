@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
 import { createApp } from './app.js';
 import { createRealtimeServer } from './realtime/socket.server.js';
-import { connectDatabase, disconnectDatabase } from './database/client.js';
+import { connectDatabase, disconnectDatabase, prisma } from './database/client.js';
+import { ensureDefaultSeedData } from './database/seed-defaults.js';
 import { env } from './config/env.js';
 import { gameRegistry } from '@games/game-engine';
 import { registerGamePlugins } from './games/register-games.js';
@@ -10,6 +11,7 @@ import { diceSimulationService } from './modules/dice/dice-simulation.service.js
 
 async function main() {
   await connectDatabase();
+  await ensureDefaultSeedData(prisma);
   registerGamePlugins();
   await gameRegistry.initializeAll();
   await initializeDiceTurnTimers();

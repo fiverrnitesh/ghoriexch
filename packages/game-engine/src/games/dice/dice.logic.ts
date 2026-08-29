@@ -283,6 +283,15 @@ export const FILLER_BOT_POOL = [
  * When real players join, filler bots automatically vacate.
  */
 export function syncTableSeats(state: DiceGameState, targetTotal = 8): DiceGameState {
+  // Ensure seats array has at least targetTotal slots
+  if (state.seats.length < targetTotal) {
+    const missing = targetTotal - state.seats.length;
+    for (let i = 0; i < missing; i++) {
+      state.seats.push({ seatIndex: state.seats.length, occupant: null });
+    }
+    state.maxSeats = Math.max(state.maxSeats, targetTotal);
+  }
+
   // 1. Ensure Shoot (tiger) is seated
   if (!hasTigerBot(state.seats)) {
     state.seats = assignSeat(state.seats, {
@@ -395,9 +404,9 @@ export function countRealUsers(seats: DiceSeat[]): number {
   return seats.filter((s) => s.occupant?.type === 'USER').length;
 }
 
-/** TIGER always occupies a seat and does not count toward max real players. */
+/** TIGER always occupies a seat and does not count toward max real players. Table has at least 8 seats. */
 export function diceTableSeatCount(maxRealPlayers: number): number {
-  return maxRealPlayers + 1;
+  return Math.max(8, maxRealPlayers + 1);
 }
 
 export function countOccupants(seats: DiceSeat[]): number {

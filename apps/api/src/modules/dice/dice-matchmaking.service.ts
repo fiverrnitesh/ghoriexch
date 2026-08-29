@@ -6,7 +6,7 @@ import { SIMULATION_ROOM_CODE } from './dice-simulation.constants.js';
 import { countRealUsers, hasTigerBot, type DiceGameState } from '@games/game-engine';
 
 const DICE_PLAY_LOCK_KEY = 74200102;
-const MAX_REAL_PLAYERS = 6;
+const MAX_REAL_PLAYERS = 7;
 
 type PlayRoomMeta = {
   gameMode?: string;

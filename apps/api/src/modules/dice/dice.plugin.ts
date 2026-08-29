@@ -35,6 +35,7 @@ async function loadState(sessionId: string): Promise<DiceGameState> {
   if (!session) throw new Error('Session not found');
   const state = (session.state as unknown as DiceGameState) ?? diceGameEngine.getInternalState(sessionId);
   if (state) {
+    seatTigerBot(state);
     diceGameEngine.loadState(sessionId, state);
     applyRoomContext(sessionId, session);
     return state;
