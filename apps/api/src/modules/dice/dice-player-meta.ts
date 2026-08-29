@@ -34,9 +34,9 @@ export async function getDicePlayerMeta(state: DiceGameState | Prisma.JsonValue 
       const publicId = `player_${occ.botId}`;
       const entry = {
         displayName: occ.name === 'TIGER' ? 'Shoot' : (occ.name ?? 'Shoot'),
-        balance: '0',
+        balance: '25000',
         currency: 'USD',
-        avatarUrl: occ.avatarUrl ?? null,
+        avatarUrl: occ.avatarUrl ?? `https://api.dicebear.com/7.x/personas/svg?seed=${occ.botId}`,
       };
       meta[occ.botId] = entry;
       meta[publicId] = entry;

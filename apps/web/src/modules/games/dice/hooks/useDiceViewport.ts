@@ -39,10 +39,8 @@ function readMode(w: number, h: number): DiceViewportMode {
 function computeGameSize(w: number, h: number, mode: DiceViewportMode): DiceGameSize {
   const gameW = mode === 'mobile-portrait' ? Math.max(w, h) : w;
   const gameH = mode === 'mobile-portrait' ? Math.min(w, h) : h;
-  // Both mobile modes render the same landscape surface: table column + right rail.
-  // Portrait just rotates that surface 90°, so the rail is a column in either case.
-  const railW = mode === 'desktop' ? 0 : Math.min(MOBILE_RAIL_W, Math.round(gameW * 0.2));
-  const tableW = gameW - railW;
+  const railW = 0;
+  const tableW = gameW;
   return { viewportW: w, viewportH: h, gameW, gameH, railW, tableW };
 }
 

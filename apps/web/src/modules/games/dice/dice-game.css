@@ -26,17 +26,10 @@ html.dice-game-active .ds-app-shell__main {
   overflow: hidden;
 }
 
+html.dice-game-active .ds-header,
 html.dice-game-active .ds-app-shell__footer,
 html.dice-game-active .ds-mobile-nav {
   display: none !important;
-}
-
-html.dice-game-active .ds-header__inner {
-  height: 44px;
-}
-
-html.dice-game-active .ds-header__logo-text {
-  font-size: 0.92rem;
 }
 
 html.dice-game-active .ds-app-shell__main {
@@ -72,6 +65,38 @@ html.dice-game-active .ds-app-shell__main {
   position: relative;
 }
 
+.dice-game-viewport__back-btn {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 50;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(18, 10, 24, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #f5d76e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 236, 180, 0.2);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.dice-game-viewport__back-btn:hover {
+  background: rgba(40, 20, 50, 0.95);
+  border-color: rgba(212, 175, 55, 0.8);
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 12px rgba(212, 175, 55, 0.4);
+}
+
+.dice-game-viewport__back-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .dice-game-viewport__stage {
   position: relative;
   flex: 1;
@@ -84,14 +109,23 @@ html.dice-game-active .ds-app-shell__main {
 
 .dice-game-viewport__side {
   position: absolute;
-  right: 0.7rem;
-  top: 7%;
-  width: min(220px, 20vw);
-  max-width: 220px;
-  max-height: 86%;
-  overflow: auto;
-  padding: 0;
-  background: transparent;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dice-game-viewport__side > * {
+  pointer-events: auto;
+}
+
+.dice-game-viewport__side {
+  position: absolute;
+  right: 1.5rem;
+  top: 1.5rem;
   z-index: 16;
   pointer-events: none;
 }
@@ -558,7 +592,7 @@ html.dice-game-active .ds-app-shell__main {
 @media (max-width: 900px) {
   html.dice-mobile-portrait .dice-game-viewport__stage--split,
   html.dice-mobile-landscape .dice-game-viewport__stage--split {
-    flex-direction: row;
+    flex-direction: column;
     align-items: stretch;
     flex: 1;
     min-width: 0;
@@ -570,7 +604,7 @@ html.dice-game-active .ds-app-shell__main {
   html.dice-mobile-landscape .dice-game-viewport__stage--split .dice-game-viewport__table-wrap {
     position: relative;
     flex: 1 1 auto;
-    width: auto;
+    width: 100%;
     height: 100%;
     min-width: 0;
     min-height: 0;
@@ -579,21 +613,14 @@ html.dice-game-active .ds-app-shell__main {
 
   html.dice-mobile-portrait .dice-game-viewport__stage--split .dice-game-viewport__side,
   html.dice-mobile-landscape .dice-game-viewport__stage--split .dice-game-viewport__side {
-    position: relative;
-    inset: auto;
-    flex: 0 0 var(--dice-rail-w, 176px);
-    width: var(--dice-rail-w, 176px);
-    max-width: var(--dice-rail-w, 176px);
-    height: 100%;
-    max-height: none;
-    box-sizing: border-box;
-    /* Top padding clears the HUD bar, which spans the full surface width. */
-    padding: 2.35rem 0.4rem 0.4rem 0.35rem;
-    overflow: hidden;
-    z-index: 16;
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
-    border-left: 1px solid rgba(212, 175, 55, 0.16);
-    background: linear-gradient(90deg, rgba(6, 4, 10, 0.2) 0%, rgba(6, 4, 10, 0.5) 100%);
   }
 
   html.dice-mobile-portrait .dice-game-viewport__stage--split .dice-game-viewport__side > *,

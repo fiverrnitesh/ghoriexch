@@ -33,3 +33,7 @@ prisma/migrations/**/migration_lock.toml
 
 # Build
 *.tsbuildinfo
+
+# Local temporary and extracted assets
+bin/
+extracted/

@@ -7,7 +7,7 @@
 
 .auth-card {
   width: 100%;
-  max-width: 440px;
+  max-width: 460px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
 }
 
@@ -37,25 +37,87 @@
   font-size: 0.85rem;
 }
 
-.auth-switch {
-  margin: 1.25rem 0 0;
+.auth-hierarchy-notice {
+  margin-top: 1.5rem;
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
   text-align: center;
-  font-size: 0.9rem;
+}
+
+.auth-hierarchy-notice p {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ds-gold);
+}
+
+.auth-hierarchy-notice span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.auth-info-body {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.auth-info-icon {
+  font-size: 2.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.auth-info-headline {
+  font-size: 1.25rem;
+  color: var(--ds-gold);
+  margin: 0 0 0.75rem;
+}
+
+.auth-info-text {
+  font-size: 0.88rem;
+  color: var(--ds-text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.auth-hierarchy-badge-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 1.25rem;
+}
+
+.auth-badge {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.04em;
+}
+
+.auth-badge--company { background: #b45309; color: #fef3c7; }
+.auth-badge--panel { background: #6d28d9; color: #ede9fe; }
+.auth-badge--super-admin { background: #1d4ed8; color: #dbeafe; }
+.auth-badge--admin { background: #0369a1; color: #e0f2fe; }
+.auth-badge--super-master { background: #047857; color: #d1fae5; }
+.auth-badge--master { background: #4d7c0f; color: #ecfccb; }
+.auth-badge--user { background: #374151; color: #f3f4f6; }
+
+.auth-badge-arrow {
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.auth-switch a {
-  color: var(--ds-gold);
-  font-weight: 700;
-}
-
-.auth-dev-hint {
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px dashed rgba(245, 158, 11, 0.3);
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
-  color: var(--warning);
-  text-align: center;
+.auth-info-subtext {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
 }

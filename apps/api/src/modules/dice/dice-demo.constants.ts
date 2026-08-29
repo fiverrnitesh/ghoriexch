@@ -23,12 +23,19 @@ export const TIGER_DISPLAY_BALANCE = 100000;
 export const DEMO_PRESETS = {
   '2': ['player1@games.local'],
   '4': ['player1@games.local', 'rahul@games.local', 'tanya@games.local'],
-  /** Current user + these 4 + TIGER = all 6 visual slots (5 real + bot). */
   '6': [
     'rahul@games.local',
     'tanya@games.local',
     'rohit@games.local',
     'sneha@games.local',
+  ],
+  '8': [
+    'rahul@games.local',
+    'tanya@games.local',
+    'rohit@games.local',
+    'sneha@games.local',
+    'arjun@games.local',
+    'priya@games.local',
   ],
   full: DEMO_PLAYERS.map((p) => p.email),
 } as const;

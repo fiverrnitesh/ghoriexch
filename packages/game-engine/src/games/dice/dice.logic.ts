@@ -263,15 +263,83 @@ export function shouldAddTigerBot(
   return countOccupants(seats) < maxSeats;
 }
 
-export function seatTigerBot(state: DiceGameState): DiceGameState {
-  if (!shouldAddTigerBot(state.seats, state.maxSeats, state.gameMode)) return state;
-  state.seats = assignSeat(state.seats, {
-    type: 'BOT',
-    botId: 'tiger',
-    name: state.config.botName,
-    avatarUrl: null,
-  });
+/** Names and seeds for dynamic filler bot players so table always has 8 active seats */
+export const FILLER_BOT_POOL = [
+  { botId: 'bot_majid', name: 'majid', avatarSeed: 'majid' },
+  { botId: 'bot_sikander', name: 'sikander1', avatarSeed: 'sikander1' },
+  { botId: 'bot_rahul', name: 'Rahul', avatarSeed: 'rahul' },
+  { botId: 'bot_tanya', name: 'Tanya', avatarSeed: 'tanya' },
+  { botId: 'bot_rohit', name: 'Rohit', avatarSeed: 'rohit' },
+  { botId: 'bot_sneha', name: 'Sneha', avatarSeed: 'sneha' },
+  { botId: 'bot_arjun', name: 'Arjun', avatarSeed: 'arjun' },
+  { botId: 'bot_vikram', name: 'Vikram', avatarSeed: 'vikram' },
+] as const;
+
+/**
+ * Ensures table always has exactly 8 players:
+ * - 1 Shoot bot (always present)
+ * - Real users (up to 7)
+ * - Filler bots fill all remaining empty seats so total seated is always 8.
+ * When real players join, filler bots automatically vacate.
+ */
+export function syncTableSeats(state: DiceGameState, targetTotal = 8): DiceGameState {
+  // 1. Ensure Shoot (tiger) is seated
+  if (!hasTigerBot(state.seats)) {
+    state.seats = assignSeat(state.seats, {
+      type: 'BOT',
+      botId: 'tiger',
+      name: state.config.botName,
+      avatarUrl: null,
+    });
+  }
+
+  // 2. Count real users and determine needed filler bots
+  const realUserCount = countRealUsers(state.seats);
+  // Shoot takes 1 seat, real users take realUserCount seats
+  const neededFillerBots = Math.max(0, targetTotal - 1 - realUserCount);
+
+  // Current filler bots seated (excluding tiger)
+  const currentFillerSeats = state.seats.filter(
+    (s) => s.occupant?.type === 'BOT' && s.occupant.botId !== 'tiger',
+  );
+
+  // If we have too many filler bots (a real user joined), remove excess
+  if (currentFillerSeats.length > neededFillerBots) {
+    const excess = currentFillerSeats.length - neededFillerBots;
+    const toRemove = currentFillerSeats.slice(currentFillerSeats.length - excess);
+    for (const seat of toRemove) {
+      seat.occupant = null;
+    }
+  }
+
+  // If we need more filler bots (a real user left or on initial start), fill empty seats
+  const currentTotalOccupants = countOccupants(state.seats);
+  if (currentTotalOccupants < targetTotal) {
+    const existingBotIds = new Set(
+      state.seats
+        .filter((s) => s.occupant?.type === 'BOT')
+        .map((s) => s.occupant!.botId),
+    );
+
+    for (const botDef of FILLER_BOT_POOL) {
+      if (countOccupants(state.seats) >= targetTotal) break;
+      if (existingBotIds.has(botDef.botId)) continue;
+
+      state.seats = assignSeat(state.seats, {
+        type: 'BOT',
+        botId: botDef.botId,
+        name: botDef.name,
+        avatarUrl: `https://api.dicebear.com/7.x/personas/svg?seed=${botDef.avatarSeed}`,
+      });
+      existingBotIds.add(botDef.botId);
+    }
+  }
+
   return state;
+}
+
+export function seatTigerBot(state: DiceGameState): DiceGameState {
+  return syncTableSeats(state, 8);
 }
 
 /** Strip internal bot metadata from player-facing state. */

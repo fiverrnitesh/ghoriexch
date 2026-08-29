@@ -146,7 +146,7 @@ export class DiceDemoService {
 
     // For capped presets (e.g. '6'), vacate any seated users not in the allowed set.
     // This prevents ghost players from a previous "Add Demo Players" / "Full Table".
-    const MAX_VISUAL_HUMANS = 5; // 5 real + Shoot = 6 visual slots
+    const MAX_VISUAL_HUMANS = 7; // 7 real + Shoot = 8 visual slots
     if (emails.length <= MAX_VISUAL_HUMANS) {
       const session = await prisma.gameSession.findUnique({ where: { id: sessionId } });
       if (session) {
@@ -185,7 +185,7 @@ export class DiceDemoService {
 
   async addDemoPlayers(sessionId: string) {
     this.assertDevEnabled();
-    const MAX_VISIBLE = 6; // 5 real + Shoot = 6 visual slots
+    const MAX_VISIBLE = 8; // 7 real + Shoot = 8 visual slots
 
     const session = await prisma.gameSession.findUnique({ where: { id: sessionId } });
     const currentState = session?.state as unknown as DiceGameState | undefined;

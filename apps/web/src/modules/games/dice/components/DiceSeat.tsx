@@ -2,6 +2,10 @@ import { Html } from '@react-three/drei';
 import { UserAvatar } from '../../../../design-system';
 import './DiceSeat.css';
 
+function isFarVisualSlot(visualSlot?: number) {
+  return visualSlot === 2 || visualSlot === 3 || visualSlot === 4 || visualSlot === 5;
+}
+
 export interface DiceSeatView {
   seatIndex: number;
   visualSlot?: number;
@@ -17,11 +21,8 @@ export interface DiceSeatView {
   isLoser?: boolean;
   isSpectator?: boolean;
   clickable?: boolean;
+  balance?: string | null;
   onClick?: () => void;
-}
-
-function isFarVisualSlot(visualSlot?: number) {
-  return visualSlot === 2 || visualSlot === 3 || visualSlot === 4;
 }
 
 export function DiceSeat({
@@ -37,6 +38,7 @@ export function DiceSeat({
   isSpectator,
   isEmpty,
   clickable,
+  balance,
   onClick,
 }: DiceSeatView) {
   const far = isFarVisualSlot(visualSlot);
@@ -100,6 +102,9 @@ export function DiceSeat({
       </div>
       <div className="dice-seat__plate">
         <span className="dice-seat__name">{shortName}</span>
+        {isSelf && balance ? (
+          <span className="dice-seat__balance">{balance}</span>
+        ) : null}
       </div>
     </div>
   );

@@ -8,8 +8,8 @@ import { useDiceViewport } from './hooks/useDiceViewport';
 import { useDiceOrientationLock } from './hooks/useDiceOrientationLock';
 import { DiceDevControls } from './components/DiceDevControls';
 import { DiceTable, type SeatScreenPos } from './components/DiceTable';
+import { DiceMainBetModal } from './components/DiceMainBetModal';
 import { SideBetModal } from './components/SideBetModals';
-import { DiceMatchPanel } from './components/DiceMatchPanel';
 import { DiceMobileHud } from './components/DiceMobileHud';
 import { DiceMobileShell } from './components/DiceMobileShell';
 import { DiceSettlementOverlay } from './components/DiceSettlementOverlay';
@@ -25,7 +25,6 @@ import {
   canRequestSideBet,
   isBettingPhase,
   isRollReadyPhase,
-  isSideBettingPhase,
   isTigerOccupant,
   isUserActiveInMatch,
   resolveOccupantKey,
@@ -50,14 +49,10 @@ export function DiceGamePage() {
     placeMainBet,
     rollDice,
     requestSideBet,
-    acceptSideBet,
-    rejectSideBet,
-    turnTimerSeconds,
-    phaseTimerSeconds,
   } = useDiceGame(sessionId, user?.id);
 
   const state = rawState as DiceGameState | null;
-  const [betAmount, setBetAmount] = useState(10);
+  const [mainBetModalOpen, setMainBetModalOpen] = useState(false);
   const [sideBetTarget, setSideBetTarget] = useState<{ userId: string; name: string } | null>(null);
   const { isMobileLandscape, isMobileGameLayout, isMobileRotate, mode, size } = useDiceViewport();
   useDiceOrientationLock(isMobileGameLayout);
@@ -134,13 +129,6 @@ export function DiceGamePage() {
   }, [user?.id, playerMeta]);
 
   useEffect(() => {
-    const min = state?.config.minBet;
-    const max = state?.config.maxBet;
-    if (typeof min !== 'number' || typeof max !== 'number') return;
-    setBetAmount((n) => Math.min(max, Math.max(min, n)));
-  }, [state?.config.minBet, state?.config.maxBet]);
-
-  useEffect(() => {
     setSideBetTarget(null);
     setChipTransfer(null);
     setThrowRequest(null);
@@ -159,11 +147,15 @@ export function DiceGamePage() {
     return () => document.documentElement.classList.remove('dice-game-active');
   }, []);
 
+  const holderSeatIndex = state?.activeMatch?.holderSeatIndex ?? null;
+  const isHolder = selfSeatIndex != null && selfSeatIndex === holderSeatIndex;
+  const canBet = isBettingPhase(state) && isHolder && !state?.mainBet && !rolling;
+
   useEffect(() => {
-    if (!state) return;
-    const sideBetOpen = (state.phase === 'BETTING' || state.phase === 'SIDE_BETTING') && !!state.mainBet;
-    if (!sideBetOpen) setSideBetTarget(null);
-  }, [state?.phase, state?.mainBet]);
+    if (canBet && !mainBetModalOpen) {
+      setMainBetModalOpen(true);
+    }
+  }, [canBet, mainBetModalOpen]);
 
   if (loading) return <LoadingState message="Joining dice table..." />;
   if (error || !state) return <ErrorState message={error ?? 'Failed to load game'} onRetry={() => navigate('/games/dice')} />;
@@ -175,23 +167,23 @@ export function DiceGamePage() {
     occupiedSeats.map((s) => s.seatIndex),
     state.maxSeats,
     selfSeatIndex,
-    (seatIndex) => isTigerOccupant(occupiedSeats.find((s) => s.seatIndex === seatIndex)!.occupant!),
+    (seatIndex) => {
+      const occ = occupiedSeats.find((s) => s.seatIndex === seatIndex)?.occupant;
+      return occ ? isTigerOccupant(occ) : false;
+    },
     (seatIndex) => {
       const occ = occupiedSeats.find((s) => s.seatIndex === seatIndex)?.occupant;
       return occ?.type === 'USER' && occ.userId === user?.id;
     },
   );
 
-  const holderSeatIndex = state.activeMatch?.holderSeatIndex ?? null;
   const opponentSeatIndex = state.activeMatch?.opponentSeatIndex ?? null;
   const rollerSeatIndex = state.rollerSeatIndex ?? holderSeatIndex;
-  const isHolder = selfSeatIndex != null && selfSeatIndex === holderSeatIndex;
   const isRoller = selfSeatIndex != null && selfSeatIndex === rollerSeatIndex;
   const isActivePlayer = user?.id ? isUserActiveInMatch(state, user.id) : false;
   const canSideBet = user?.id ? canRequestSideBet(state, user.id) : false;
   const minBet = state.config.minBet;
   const maxBet = state.config.maxBet;
-  const canBet = isBettingPhase(state) && isHolder && !state.mainBet && !rolling;
   const canRoll = isRollReadyPhase(state) && isRoller && !rolling && !localThrowId;
   const canPlayerThrow = canRoll;
   const throwMode: 'auto' | 'player_throw' =
@@ -294,6 +286,10 @@ export function DiceGamePage() {
     const seatClickable = canSideBet && isActive && !!occupantUserId;
     const seatInteractive = isActive && !!occupantUserId;
 
+    const balance = isSelf && user?.id && playerMeta[user.id]?.balance
+      ? formatAmount(parseFloat(playerMeta[user.id].balance!) || 0)
+      : undefined;
+
     slotViews[visualSlot] = {
       seatIndex: seat.seatIndex,
       visualSlot,
@@ -301,13 +297,14 @@ export function DiceGamePage() {
       avatarUrl: meta?.avatarUrl ?? occupant.avatarUrl,
       occupantUserId,
       isSelf,
+      balance,
       isActive,
       isDiceHolder: isSeatHolder,
       isYourTurn: isSeatHolder && canBet,
       isSpectator: !isActive,
       clickable: seatClickable,
-      onClick: seatInteractive
-        ? () => openSideBetForSeat(seat.seatIndex, occupantUserId!, meta?.displayName ?? occupant.name)
+      onClick: seatInteractive && occupantUserId
+        ? () => openSideBetForSeat(seat.seatIndex, occupantUserId, meta?.displayName ?? occupant.name)
         : undefined,
     };
   }
@@ -315,12 +312,6 @@ export function DiceGamePage() {
   const tableDice = rolling
     ? displayResult?.dice ?? null
     : displayResult?.dice ?? state.dice ?? null;
-
-  const visibleSeatIndexes = new Set(visualSlotBySeat.keys());
-
-  const showBetTimer = isBettingPhase(state);
-  const showSideBetTimer = isSideBettingPhase(state);
-  const showRollTimer = isRollReadyPhase(state);
 
   const seatViews: DiceSeatView[] = slotViews.map((view, visualSlot) =>
     view ?? {
@@ -336,62 +327,18 @@ export function DiceGamePage() {
     ? formatAmount(parseFloat(playerMeta[user.id].balance!) || 0)
     : undefined;
 
-  const matchPanel = (
-    <DiceMatchPanel
-      state={state}
-      playerMeta={playerMeta}
-      userId={user?.id}
-      formatAmount={formatAmount}
-      availableBalance={availableBalance}
-      timerSeconds={
-        showBetTimer
-          ? turnTimerSeconds ?? 0
-          : showSideBetTimer || showRollTimer
-            ? phaseTimerSeconds ?? 0
-            : undefined
-      }
-      timerMaxSeconds={
-        showBetTimer
-          ? state.config.turnTimeoutSeconds
-          : showSideBetTimer
-            ? state.config.sideBetWindowSeconds
-            : showRollTimer
-              ? state.config.finalLockSeconds
-              : undefined
-      }
-      canBet={canBet}
-      canRoll={canRoll}
-      canSideBet={canSideBet}
-      rolling={rolling}
-      betAmount={betAmount}
-      onAmountChange={setBetAmount}
-      minBet={minBet}
-      maxBet={maxBet}
-      onPlaceMainBet={async (amount, choice) => { await placeMainBet(amount, choice); }}
-      onRoll={async () => {
-        // Panel button: soft throw from roller toward table centre.
-        if (trayWorldPos) {
-          await handlePlayerThrow({
-            dirX: -trayWorldPos[0],
-            dirZ: -trayWorldPos[2],
-            speed: 0.72,
-          });
-        } else {
-          await handlePlayerThrow({ dirX: 0, dirZ: -1, speed: 0.72 });
-        }
-      }}
-      onSideBet={(targetUserId, name) => {
-        const seat = state.seats.find((s) => resolveOccupantKey(s.occupant) === targetUserId);
-        if (seat) openSideBetForSeat(seat.seatIndex, targetUserId, name);
-      }}
-      visibleSeatIndexes={visibleSeatIndexes}
-      onAccept={async (sideBetId, amount) => { await acceptSideBet(sideBetId, amount); }}
-      onReject={async (sideBetId) => { await rejectSideBet(sideBetId); }}
-    />
-  );
-
   const playArea = (
     <>
+      <button
+        type="button"
+        className="dice-game-viewport__back-btn"
+        aria-label="Exit game"
+        onClick={() => navigate('/games/dice')}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
       {isMobileGameLayout ? (
         <DiceMobileHud
           balanceDisplay={balanceDisplay}
@@ -453,7 +400,22 @@ export function DiceGamePage() {
         ) : null}
 
         <div className="dice-game-viewport__side">
-          {matchPanel}
+          {canBet ? (
+            <button
+              type="button"
+              className="ds-btn ds-btn--gold"
+              style={{
+                pointerEvents: 'auto',
+                boxShadow: '0 4px 18px rgba(212, 175, 55, 0.5)',
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                padding: '0.6rem 1.2rem',
+              }}
+              onClick={() => setMainBetModalOpen(true)}
+            >
+              PLACE BET
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -498,6 +460,20 @@ export function DiceGamePage() {
           <div className="dice-game-viewport__play">{playArea}</div>
         </div>
       )}
+
+      <DiceMainBetModal
+        open={mainBetModalOpen}
+        onClose={() => setMainBetModalOpen(false)}
+        minBet={minBet}
+        maxBet={maxBet}
+        currency={currency}
+        formatAmount={formatAmount}
+        availableBalance={availableBalance}
+        onSubmit={async (amount, choice) => {
+          await placeMainBet(amount, choice);
+          setMainBetModalOpen(false);
+        }}
+      />
 
       <SideBetModal
         open={!!sideBetTarget}

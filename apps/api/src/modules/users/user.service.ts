@@ -23,6 +23,7 @@ export class UserService {
         where,
         include: {
           roles: { include: { role: true } },
+          parent: { select: { id: true, username: true, displayName: true } },
           wallet: { select: { balance: true, availableBalance: true, lockedBalance: true, currency: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -40,7 +41,9 @@ export class UserService {
         displayName: u.displayName,
         status: u.status,
         roles: u.roles.map((r) => r.role.name),
+        parent: u.parent,
         wallet: u.wallet,
+        isUnlimited: u.isUnlimited,
         createdAt: u.createdAt.toISOString(),
         lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
       })),
@@ -143,6 +146,8 @@ export class UserService {
       where: { id: userId },
       include: {
         roles: { include: { role: true } },
+        parent: { select: { id: true, username: true, displayName: true } },
+        _count: { select: { downlines: true } },
         wallet: true,
       },
     });
@@ -158,6 +163,9 @@ export class UserService {
       avatarUrl: user.avatarUrl,
       status: user.status,
       roles: user.roles.map((r) => r.role.name),
+      parent: user.parent,
+      downlineCount: user._count.downlines,
+      isUnlimited: user.isUnlimited,
       preferences: {
         emailNotifications: preferences.emailNotifications ?? true,
         pushNotifications: preferences.pushNotifications ?? true,

@@ -56,7 +56,7 @@ export class DiceGameEngine extends BaseGameEngine {
     version: '1.0.0',
     status: 'ACTIVE',
     minPlayers: 2,
-    maxPlayers: 6,
+    maxPlayers: 8,
     category: 'popular',
     description: 'Custom dual-dice ODD/EVEN table game',
   };

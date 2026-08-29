@@ -541,14 +541,14 @@ describe('DiceGameEngine — table capacity', () => {
       hostUserId: 'host',
       config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
     });
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       await engine.joinSession({ sessionId, userId: `u${i}` });
     }
     const state = engine.getInternalState(sessionId)!;
-    assert.equal(state.seats.filter((s) => s.occupant?.type === 'USER').length, 6);
+    assert.equal(state.seats.filter((s) => s.occupant?.type === 'USER').length, 8);
     assert.equal(state.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
     await assert.rejects(
-      () => engine.joinSession({ sessionId, userId: 'u6' }),
+      () => engine.joinSession({ sessionId, userId: 'u8' }),
       /Table full/,
     );
   });
@@ -560,7 +560,7 @@ describe('DiceGameEngine — table capacity', () => {
       config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
     });
     const empty = engine.getInternalState(sessionId)!;
-    assert.equal(empty.maxSeats, 7);
+    assert.equal(empty.maxSeats, 9);
     assert.equal(empty.seats.filter((s) => s.occupant?.type === 'USER').length, 0);
     assert.equal(empty.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
     await engine.joinSession({ sessionId, userId: 'u0' });

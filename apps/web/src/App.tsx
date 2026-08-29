@@ -1,13 +1,45 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useState, useMemo, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './modules/auth/AuthContext';
 import { ProtectedRoute } from './modules/auth/ProtectedRoute';
-import { AppShell, LoadingState } from './design-system';
-import { PLAYER_NAV } from '@games/shared';
+import { AppShell, LoadingState, ErrorState, type NavItem } from './design-system';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('Uncaught error in component tree:', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#07040c' }}>
+          <ErrorState
+            message={this.state.error?.message ?? 'An unexpected error occurred'}
+            onRetry={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+          />
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+import { PLAYER_NAV, isAgent } from '@games/shared';
 import { api } from './lib/api-client';
 import { LobbyPage } from './modules/lobby/LobbyPage';
 import { GameDetailPage } from './modules/lobby/GameDetailPage';
-import { LoginPage, RegisterPage } from './modules/auth/AuthPages';
+import { LoginPage } from './modules/auth/AuthPages';
 import { ProfilePage } from './modules/account/ProfilePage';
 import { AccountSettingsPage } from './modules/account/AccountSettingsPage';
 import { WalletOverviewPage } from './modules/wallet/WalletOverviewPage';
@@ -28,12 +60,13 @@ const DiceLobbyPage = lazy(() =>
 const DiceGamePage = lazy(() =>
   import('./modules/games/dice/DiceGamePage').then((m) => ({ default: m.DiceGamePage })),
 );
+const DownlinesPage = lazy(() =>
+  import('./modules/agent/DownlinesPage').then((m) => ({ default: m.DownlinesPage })),
+);
 
 function DiceRouteFallback() {
   return <LoadingState message="Loading..." />;
 }
-
-const NAV_ITEMS = PLAYER_NAV.map((item) => ({ path: item.path, label: item.label }));
 
 function AppRoutes() {
   const { user, logout } = useAuth();
@@ -52,11 +85,19 @@ function AppRoutes() {
       .catch(() => setBalanceDisplay(undefined));
   }, [user]);
 
+  const navItems = useMemo<NavItem[]>(() => {
+    const items: NavItem[] = PLAYER_NAV.map((item) => ({ path: item.path, label: item.label }));
+    if (user && isAgent(user.roles as any)) {
+      items.splice(2, 0, { path: '/downlines', label: 'Downlines' });
+    }
+    return items;
+  }, [user]);
+
   return (
-    <AppShell navItems={NAV_ITEMS} user={user} balanceDisplay={balanceDisplay} onLogout={() => logout()}>
+    <AppShell navItems={navItems} user={user} balanceDisplay={balanceDisplay} onLogout={() => logout()}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/register" element={<Navigate to="/login" replace />} />
 
         <Route path="/" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
         <Route
@@ -75,6 +116,16 @@ function AppRoutes() {
             <ProtectedRoute>
               <Suspense fallback={<DiceRouteFallback />}>
                 <DiceGamePage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/downlines"
+          element={(
+            <ProtectedRoute>
+              <Suspense fallback={<DiceRouteFallback />}>
+                <DownlinesPage />
               </Suspense>
             </ProtectedRoute>
           )}
@@ -102,10 +153,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

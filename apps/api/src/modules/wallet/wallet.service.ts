@@ -428,7 +428,7 @@ export class WalletService {
       const status = opts.initialStatus ?? 'COMPLETED';
 
       const updated = await tx.wallet.update({
-        where: { id: wallet.id, version: wallet.version },
+        where: { id: wallet.id },
         data: {
           balance: balanceAfter,
           availableBalance: availableAfter,

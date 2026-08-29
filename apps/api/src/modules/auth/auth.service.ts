@@ -8,25 +8,38 @@ import type { RoleName } from '@games/shared';
 const SALT_ROUNDS = 12;
 
 export interface RegisterInput {
-  email: string;
   username: string;
   password: string;
   displayName?: string;
+  email?: string;
 }
 
 export interface LoginInput {
-  email: string;
+  username?: string;
+  email?: string;
   password: string;
 }
 
 export class AuthService {
   async register(input: RegisterInput) {
+    const username = input.username.trim();
+    const normalizedUsername = username.toLowerCase();
+    const email = (input.email?.trim() || `${normalizedUsername}@ghoriexch.local`).toLowerCase();
+
     const existing = await prisma.user.findFirst({
-      where: { OR: [{ email: input.email }, { username: input.username }] },
+      where: {
+        OR: [
+          { username: { equals: normalizedUsername, mode: 'insensitive' } },
+          { email },
+        ],
+      },
     });
 
     if (existing) {
-      throw new ConflictError('Email or username already in use');
+      if (existing.username.toLowerCase() === normalizedUsername) {
+        throw new ConflictError('Username is already taken');
+      }
+      throw new ConflictError('Account already exists');
     }
 
     const userRole = await prisma.role.findUniqueOrThrow({ where: { name: 'USER' } });
@@ -34,10 +47,10 @@ export class AuthService {
 
     const user = await prisma.user.create({
       data: {
-        email: input.email.toLowerCase(),
-        username: input.username.toLowerCase(),
+        email,
+        username: normalizedUsername,
         passwordHash,
-        displayName: input.displayName ?? input.username,
+        displayName: input.displayName?.trim() || username,
         roles: { create: [{ roleId: userRole.id }] },
         wallet: {
           create: {
@@ -66,13 +79,24 @@ export class AuthService {
   }
 
   async login(input: LoginInput) {
-    const user = await prisma.user.findUnique({
-      where: { email: input.email.toLowerCase() },
+    const identifier = (input.username || input.email || '').trim().toLowerCase();
+
+    if (!identifier) {
+      throw new UnauthorizedError('Username is required');
+    }
+
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: { equals: identifier, mode: 'insensitive' } },
+          { email: { equals: identifier, mode: 'insensitive' } },
+        ],
+      },
       include: { roles: { include: { role: true } }, wallet: true },
     });
 
     if (!user) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('Invalid username or password');
     }
 
     if (user.status !== 'ACTIVE') {
@@ -81,7 +105,7 @@ export class AuthService {
 
     const valid = await bcrypt.compare(input.password, user.passwordHash);
     if (!valid) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('Invalid username or password');
     }
 
     const roles = user.roles.map((r) => r.role.name as RoleName);

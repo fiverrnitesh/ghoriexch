@@ -15,7 +15,7 @@ import { TestModePage } from './pages/TestModePage';
 import './styles/admin.css';
 
 function AdminLogin({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState('admin@games.local');
+  const [username, setUsername] = useState('company');
   const [password, setPassword] = useState('DevPassword123!');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
       const res = await fetch(`${import.meta.env.VITE_ADMIN_API_URL ?? ''}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
         credentials: 'include',
       });
       const json = await res.json();
@@ -48,11 +48,11 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
         <h1>Admin Sign In</h1>
         <form className="login-form" onSubmit={handleSubmit}>
           {error && <div className="login-error">{error}</div>}
-          <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+          <input className="input" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
+          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
           <button type="submit" className="btn btn--gold" disabled={loading}>{loading ? 'Signing in...' : 'Sign In'}</button>
         </form>
-        <p className="login-hint">Dev: admin@games.local / DevPassword123!</p>
+        <p className="login-hint">Dev: company / DevPassword123!</p>
       </div>
     </div>
   );

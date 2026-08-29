@@ -55,7 +55,7 @@ function Wallpaper() {
   return (
     <mesh ref={ref} renderOrder={-1000} frustumCulled={false}>
       <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial map={texture} depthTest={false} depthWrite={false} toneMapped={false} />
+      <meshBasicMaterial map={texture} depthTest={true} depthWrite={false} toneMapped={false} />
     </mesh>
   );
 }

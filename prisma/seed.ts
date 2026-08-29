@@ -6,7 +6,15 @@ const prisma = new PrismaClient();
 const DEV_PASSWORD = 'DevPassword123!';
 
 async function seedRoles() {
-  const roles: RoleName[] = ['USER', 'ADMIN', 'SUPER_ADMIN'];
+  const roles: RoleName[] = [
+    'COMPANY',
+    'PANEL',
+    'SUPER_ADMIN',
+    'ADMIN',
+    'SUPER_MASTER',
+    'MASTER',
+    'USER',
+  ];
   for (const name of roles) {
     await prisma.role.upsert({
       where: { name },
@@ -19,24 +27,78 @@ async function seedRoles() {
 async function seedUsers() {
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 12);
 
-  const superAdminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'SUPER_ADMIN' } });
-  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'ADMIN' } });
-  const userRole = await prisma.role.findUniqueOrThrow({ where: { name: 'USER' } });
+  const rolesMap: Record<RoleName, { id: string }> = {
+    COMPANY: await prisma.role.findUniqueOrThrow({ where: { name: 'COMPANY' } }),
+    PANEL: await prisma.role.findUniqueOrThrow({ where: { name: 'PANEL' } }),
+    SUPER_ADMIN: await prisma.role.findUniqueOrThrow({ where: { name: 'SUPER_ADMIN' } }),
+    ADMIN: await prisma.role.findUniqueOrThrow({ where: { name: 'ADMIN' } }),
+    SUPER_MASTER: await prisma.role.findUniqueOrThrow({ where: { name: 'SUPER_MASTER' } }),
+    MASTER: await prisma.role.findUniqueOrThrow({ where: { name: 'MASTER' } }),
+    USER: await prisma.role.findUniqueOrThrow({ where: { name: 'USER' } }),
+  };
 
+  // 1. Level 1: COMPANY (Root with unlimited coins)
+  const company = await prisma.user.upsert({
+    where: { email: 'company@ghoriexch.local' },
+    update: { isUnlimited: true },
+    create: {
+      email: 'company@ghoriexch.local',
+      username: 'company',
+      displayName: 'Company Master',
+      passwordHash,
+      status: UserStatus.ACTIVE,
+      isUnlimited: true,
+      roles: { create: [{ roleId: rolesMap.COMPANY.id }] },
+      wallet: {
+        create: {
+          balance: 999999999,
+          availableBalance: 999999999,
+          lockedBalance: 0,
+          currency: 'USD',
+        },
+      },
+    },
+  });
+
+  // 2. Level 2: PANEL
+  const panel = await prisma.user.upsert({
+    where: { email: 'panel1@ghoriexch.local' },
+    update: { parentId: company.id },
+    create: {
+      email: 'panel1@ghoriexch.local',
+      username: 'panel1',
+      displayName: 'Main Panel',
+      passwordHash,
+      status: UserStatus.ACTIVE,
+      parentId: company.id,
+      roles: { create: [{ roleId: rolesMap.PANEL.id }] },
+      wallet: {
+        create: {
+          balance: 500000,
+          availableBalance: 500000,
+          lockedBalance: 0,
+          currency: 'USD',
+        },
+      },
+    },
+  });
+
+  // 3. Level 3: SUPER_ADMIN
   const superAdmin = await prisma.user.upsert({
     where: { email: 'superadmin@games.local' },
-    update: {},
+    update: { parentId: panel.id },
     create: {
       email: 'superadmin@games.local',
       username: 'superadmin',
       displayName: 'Super Admin',
       passwordHash,
       status: UserStatus.ACTIVE,
-      roles: { create: [{ roleId: superAdminRole.id }, { roleId: adminRole.id }, { roleId: userRole.id }] },
+      parentId: panel.id,
+      roles: { create: [{ roleId: rolesMap.SUPER_ADMIN.id }] },
       wallet: {
         create: {
-          balance: 10000,
-          availableBalance: 10000,
+          balance: 200000,
+          availableBalance: 200000,
           lockedBalance: 0,
           currency: 'USD',
         },
@@ -44,20 +106,22 @@ async function seedUsers() {
     },
   });
 
+  // 4. Level 4: ADMIN
   const admin = await prisma.user.upsert({
     where: { email: 'admin@games.local' },
-    update: {},
+    update: { parentId: superAdmin.id },
     create: {
       email: 'admin@games.local',
       username: 'admin',
       displayName: 'Platform Admin',
       passwordHash,
       status: UserStatus.ACTIVE,
-      roles: { create: [{ roleId: adminRole.id }, { roleId: userRole.id }] },
+      parentId: superAdmin.id,
+      roles: { create: [{ roleId: rolesMap.ADMIN.id }] },
       wallet: {
         create: {
-          balance: 5000,
-          availableBalance: 5000,
+          balance: 100000,
+          availableBalance: 100000,
           lockedBalance: 0,
           currency: 'USD',
         },
@@ -65,16 +129,63 @@ async function seedUsers() {
     },
   });
 
+  // 5. Level 5: SUPER_MASTER
+  const superMaster = await prisma.user.upsert({
+    where: { email: 'supermaster1@ghoriexch.local' },
+    update: { parentId: admin.id },
+    create: {
+      email: 'supermaster1@ghoriexch.local',
+      username: 'supermaster1',
+      displayName: 'Super Master 1',
+      passwordHash,
+      status: UserStatus.ACTIVE,
+      parentId: admin.id,
+      roles: { create: [{ roleId: rolesMap.SUPER_MASTER.id }] },
+      wallet: {
+        create: {
+          balance: 50000,
+          availableBalance: 50000,
+          lockedBalance: 0,
+          currency: 'USD',
+        },
+      },
+    },
+  });
+
+  // 6. Level 6: MASTER
+  const master = await prisma.user.upsert({
+    where: { email: 'master1@ghoriexch.local' },
+    update: { parentId: superMaster.id },
+    create: {
+      email: 'master1@ghoriexch.local',
+      username: 'master1',
+      displayName: 'Master Agent 1',
+      passwordHash,
+      status: UserStatus.ACTIVE,
+      parentId: superMaster.id,
+      roles: { create: [{ roleId: rolesMap.MASTER.id }] },
+      wallet: {
+        create: {
+          balance: 25000,
+          availableBalance: 25000,
+          lockedBalance: 0,
+          currency: 'USD',
+        },
+      },
+    },
+  });
+
+  // 7. Level 7: PLAYERS / USERS
   const demoPlayers = [
-    { email: 'player1@games.local', username: 'player1', displayName: 'Player One', balance: 25000, avatarSeed: 'playerone' },
-    { email: 'rahul@games.local', username: 'rahul', displayName: 'Rahul', balance: 30000, avatarSeed: 'rahul' },
-    { email: 'tanya@games.local', username: 'tanya', displayName: 'Tanya', balance: 25000, avatarSeed: 'tanya' },
-    { email: 'rohit@games.local', username: 'rohit', displayName: 'Rohit', balance: 50000, avatarSeed: 'rohit' },
-    { email: 'sneha@games.local', username: 'sneha', displayName: 'Sneha', balance: 90000, avatarSeed: 'sneha' },
-    { email: 'arjun@games.local', username: 'arjun', displayName: 'Arjun', balance: 40000, avatarSeed: 'arjun' },
-    { email: 'priya@games.local', username: 'priya', displayName: 'Priya', balance: 35000, avatarSeed: 'priya' },
-    { email: 'vikram@games.local', username: 'vikram', displayName: 'Vikram', balance: 45000, avatarSeed: 'vikram' },
-    { email: 'neha@games.local', username: 'neha', displayName: 'Neha', balance: 60000, avatarSeed: 'neha' },
+    { email: 'player1@games.local', username: 'player1', displayName: 'Player One', balance: 25000, avatarSeed: 'playerone', parentId: master.id },
+    { email: 'rahul@games.local', username: 'rahul', displayName: 'Rahul', balance: 30000, avatarSeed: 'rahul', parentId: master.id },
+    { email: 'tanya@games.local', username: 'tanya', displayName: 'Tanya', balance: 25000, avatarSeed: 'tanya', parentId: master.id },
+    { email: 'rohit@games.local', username: 'rohit', displayName: 'Rohit', balance: 50000, avatarSeed: 'rohit', parentId: master.id },
+    { email: 'sneha@games.local', username: 'sneha', displayName: 'Sneha', balance: 90000, avatarSeed: 'sneha', parentId: master.id },
+    { email: 'arjun@games.local', username: 'arjun', displayName: 'Arjun', balance: 40000, avatarSeed: 'arjun', parentId: master.id },
+    { email: 'priya@games.local', username: 'priya', displayName: 'Priya', balance: 35000, avatarSeed: 'priya', parentId: master.id },
+    { email: 'vikram@games.local', username: 'vikram', displayName: 'Vikram', balance: 45000, avatarSeed: 'vikram', parentId: master.id },
+    { email: 'neha@games.local', username: 'neha', displayName: 'Neha', balance: 60000, avatarSeed: 'neha', parentId: master.id },
   ];
 
   for (const u of demoPlayers) {
@@ -84,6 +195,7 @@ async function seedUsers() {
       update: {
         displayName: u.displayName,
         avatarUrl,
+        parentId: u.parentId,
         wallet: {
           update: {
             balance: u.balance,
@@ -100,7 +212,8 @@ async function seedUsers() {
         avatarUrl,
         passwordHash,
         status: UserStatus.ACTIVE,
-        roles: { create: [{ roleId: userRole.id }] },
+        parentId: u.parentId,
+        roles: { create: [{ roleId: rolesMap.USER.id }] },
         wallet: {
           create: {
             balance: u.balance,
@@ -112,292 +225,41 @@ async function seedUsers() {
       },
     });
   }
-
-  // Legacy aliases kept for backwards compatibility
-  await prisma.user.upsert({
-    where: { email: 'player2@games.local' },
-    update: {},
-    create: {
-      email: 'player2@games.local',
-      username: 'player2',
-      displayName: 'Player Two',
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      roles: { create: [{ roleId: userRole.id }] },
-      wallet: { create: { balance: 1500, availableBalance: 1500, lockedBalance: 0, currency: 'USD' } },
-    },
-  });
-
-  await prisma.user.upsert({
-    where: { email: 'player3@games.local' },
-    update: {},
-    create: {
-      email: 'player3@games.local',
-      username: 'player3',
-      displayName: 'Player Three',
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      roles: { create: [{ roleId: userRole.id }] },
-      wallet: { create: { balance: 1000, availableBalance: 1000, lockedBalance: 0, currency: 'USD' } },
-    },
-  });
-
-  return { superAdmin, admin };
 }
 
 async function seedGames() {
-  const catalog = [
-    { slug: 'sic-bo', name: 'SIC BO', category: 'popular', provider: 'Ezugi', sortOrder: 1 },
-    { slug: 'dragon-tiger', name: 'DRAGON TIGER', category: 'popular', provider: 'Ezugi', sortOrder: 2 },
-    { slug: 'aero', name: 'AERO', category: 'popular', provider: 'TURBO GAMES', sortOrder: 3 },
-    { slug: 'chicken-highway', name: 'CHICKEN HIGHWAY', category: 'popular', provider: 'TURBO GAMES', sortOrder: 4 },
-    { slug: 'teen-patti-1day', name: 'TEEN PATTI 1-DAY', category: 'indian-cards', provider: 'TRISTAR', sortOrder: 5 },
-    { slug: 'teen-patti-20-20', name: 'TEEN PATTI 20-20', category: 'indian-cards', provider: 'TRISTAR', sortOrder: 6 },
-    { slug: 'bollywood-casino', name: 'BOLLYWOOD CASINO', category: 'indian-cards', provider: 'TRISTAR', sortOrder: 7 },
-    { slug: '32-cards', name: '32 CARDS', category: 'indian-cards', provider: 'TRISTAR', sortOrder: 8 },
-    { slug: 'ludo', name: 'LUDO', category: 'indian-cards', provider: 'TRISTAR', sortOrder: 9 },
-    { slug: 'aviator', name: 'AVIATOR', category: 'crash', provider: 'SPRIBE', sortOrder: 10 },
-    { slug: 'mines', name: 'MINES', category: 'crash', provider: 'SPRIBE', sortOrder: 11 },
-  ];
+  const dice = await prisma.game.upsert({
+    where: { slug: 'dice' },
+    update: {
+      name: 'GHORI',
+      provider: 'GHORI EXCH',
+      category: 'popular',
+      status: GameStatus.ACTIVE,
+      maxPlayers: 8,
+    },
+    create: {
+      name: 'GHORI',
+      slug: 'dice',
+      provider: 'GHORI EXCH',
+      category: 'popular',
+      status: GameStatus.ACTIVE,
+      minBet: 1,
+      maxBet: 10000,
+      maxPlayers: 8,
+    },
+  });
 
-  for (const game of catalog) {
-    await prisma.game.upsert({
-      where: { slug: game.slug },
-      update: {
-        name: game.name,
-        category: game.category,
-        provider: game.provider,
-        sortOrder: game.sortOrder,
-      },
-      create: {
-        ...game,
-        status: GameStatus.ACTIVE,
-        minPlayers: 1,
-        maxPlayers: 100,
-        description: `${game.name} — platform catalog entry (game engine not yet implemented)`,
-      },
-    });
-  }
+  return { dice };
 }
 
 async function main() {
-  console.log('🌱 Seeding database...\n');
-
+  console.log('Seeding 7-Tier Hierarchy Roles...');
   await seedRoles();
-  console.log('✓ Roles seeded (USER, ADMIN, SUPER_ADMIN)');
-
+  console.log('Seeding 7-Tier Hierarchy Users & Agents...');
   await seedUsers();
-  console.log('✓ Demo users seeded (9 players + admin, USD sandbox balances)');
-  console.log('  Password for all dev accounts:', DEV_PASSWORD);
-  console.log('  Demo players: player1, rahul, tanya, rohit, sneha, arjun, priya, vikram, neha @games.local');
-  console.log('  Admin:       admin@games.local');
-
+  console.log('Seeding Games...');
   await seedGames();
-  console.log('✓ Game catalog seeded (11 games, no engines attached yet)');
-
-  await seedBots();
-  console.log('✓ Bot entities seeded (TIGER bot for Dragon Tiger)');
-
-  await seedDiceGame();
-  console.log('✓ Dice game seeded with configuration');
-
-  await seedDemoRoom();
-  console.log('✓ Dice demo room seeded (DICEDEMO)');
-
-  await seedSimulationRoom();
-  console.log('✓ Dice simulation room seeded (DICE10SIM)');
-
-  console.log('\n✅ Seed complete');
-}
-
-async function seedDemoRoom() {
-  const game = await prisma.game.findUnique({ where: { slug: 'dice' } });
-  const host = await prisma.user.findUnique({ where: { email: 'player1@games.local' } });
-  if (!game || !host) return;
-
-  await prisma.room.upsert({
-    where: { code: 'DICEDEMO' },
-    update: { name: 'DICE DEMO TABLE', status: 'OPEN', gameId: game.id },
-    create: {
-      gameId: game.id,
-      hostUserId: host.id,
-      name: 'DICE DEMO TABLE',
-      code: 'DICEDEMO',
-      maxPlayers: game.maxPlayers,
-      minBet: game.minBet,
-      maxBet: game.maxBet,
-      status: 'OPEN',
-    },
-  });
-}
-
-async function seedSimulationRoom() {
-  const game = await prisma.game.findUnique({ where: { slug: 'dice' } });
-  const host = await prisma.user.findUnique({ where: { email: 'player1@games.local' } });
-  const simEmails = [
-    'player1@games.local',
-    'rahul@games.local',
-    'tanya@games.local',
-    'rohit@games.local',
-    'sneha@games.local',
-    'arjun@games.local',
-    'priya@games.local',
-    'vikram@games.local',
-    'neha@games.local',
-    'player2@games.local',
-  ];
-  const simUsers = await prisma.user.findMany({ where: { email: { in: simEmails } } });
-  if (!game || !host) return;
-
-  await prisma.room.upsert({
-    where: { code: 'DICE10SIM' },
-    update: {
-      name: '10 PLAYER LIVE TEST',
-      status: 'OPEN',
-      gameId: game.id,
-      maxPlayers: 6,
-      metadata: {
-        gameMode: 'FRIENDS',
-        isSystemRoom: true,
-        simulationRoom: true,
-        acceptedParticipantIds: simUsers.map((u) => u.id),
-        pendingJoinRequests: [],
-      },
-    },
-    create: {
-      gameId: game.id,
-      hostUserId: host.id,
-      name: '10 PLAYER LIVE TEST',
-      code: 'DICE10SIM',
-      maxPlayers: 6,
-      minBet: game.minBet,
-      maxBet: game.maxBet,
-      status: 'OPEN',
-      isPrivate: true,
-      metadata: {
-        gameMode: 'FRIENDS',
-        isSystemRoom: true,
-        simulationRoom: true,
-        acceptedParticipantIds: simUsers.map((u) => u.id),
-        pendingJoinRequests: [],
-      },
-    },
-  });
-}
-
-async function seedDiceGame() {
-  const game = await prisma.game.upsert({
-    where: { slug: 'dice' },
-    update: {
-      name: 'Dice',
-      status: GameStatus.ACTIVE,
-      minPlayers: 2,
-      maxPlayers: 6,
-      minBet: 10,
-      maxBet: 10000,
-      version: '1.0.0',
-      category: 'popular',
-      provider: 'GHORI EXCH',
-      sortOrder: 0,
-    },
-    create: {
-      slug: 'dice',
-      name: 'Dice',
-      description: 'Custom dual-dice ODD/EVEN table game with side betting',
-      status: GameStatus.ACTIVE,
-      minPlayers: 2,
-      maxPlayers: 6,
-      minBet: 10,
-      maxBet: 10000,
-      version: '1.0.0',
-      category: 'popular',
-      provider: 'GHORI EXCH',
-      sortOrder: 0,
-    },
-  });
-
-  await prisma.gameConfiguration.upsert({
-    where: { gameId_key: { gameId: game.id, key: 'settings' } },
-    update: {
-      value: {
-        platformFeeRate: 0.1,
-        turnTimeoutSeconds: 60,
-        payoutMultiplier: 1.9,
-        sideBetWindowSeconds: 10,
-        botName: 'Shoot',
-        minBet: 10,
-        maxBet: 10000,
-      },
-    },
-    create: {
-      gameId: game.id,
-      key: 'settings',
-      value: {
-        platformFeeRate: 0.1,
-        turnTimeoutSeconds: 60,
-        payoutMultiplier: 1.9,
-        sideBetWindowSeconds: 10,
-        botName: 'Shoot',
-        minBet: 10,
-        maxBet: 10000,
-      },
-    },
-  });
-
-  const dragonTiger = await prisma.game.findUnique({ where: { slug: 'dragon-tiger' } });
-  if (dragonTiger) {
-    await prisma.bot.updateMany({
-      where: { gameId: dragonTiger.id, name: { in: ['TIGER', 'Shoot'] } },
-      data: { gameId: game.id },
-    });
-  }
-}
-
-async function seedBots() {
-  const diceGame = await prisma.game.findUnique({ where: { slug: 'dice' } });
-  const dragonTiger = await prisma.game.findUnique({ where: { slug: 'dragon-tiger' } });
-  const targetGame = diceGame ?? dragonTiger;
-  if (!targetGame) return;
-
-  const existing = await prisma.bot.findFirst({ where: { gameId: targetGame.id, name: { in: ['TIGER', 'Shoot'] } } });
-  if (existing) {
-    await prisma.bot.update({
-      where: { id: existing.id },
-      data: {
-        name: 'Shoot',
-        avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=tiger',
-        status: 'ACTIVE',
-        config: {
-          entityType: 'BOT',
-          personality: 'aggressive',
-          betStrategy: 'follow_trend',
-          minBet: 10,
-          maxBet: 500,
-          responseDelayMs: 800,
-          note: 'Internal BOT entity — never linked to a user account',
-        },
-      },
-    });
-    return;
-  }
-
-  await prisma.bot.create({
-    data: {
-      gameId: targetGame.id,
-      name: 'Shoot',
-      avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=tiger',
-      status: 'ACTIVE',
-      config: {
-        entityType: 'BOT',
-        personality: 'aggressive',
-        betStrategy: 'follow_trend',
-        minBet: 10,
-        maxBet: 500,
-        responseDelayMs: 800,
-        note: 'Internal BOT entity — never linked to a user account',
-      },
-    },
-  });
+  console.log('Seed completed successfully!');
 }
 
 main()

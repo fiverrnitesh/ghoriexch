@@ -43,7 +43,7 @@ export function UserDetailPage() {
     <div>
       <PageHeader
         title={String(user.displayName ?? user.username)}
-        subtitle={`@${user.username} · ${user.email}`}
+        subtitle={`@${user.username}`}
         actions={<Link to="/users" className="btn btn--ghost">← Back</Link>}
       />
 
@@ -58,11 +58,13 @@ export function UserDetailPage() {
       {tab === 'profile' && (
         <div className="detail-grid">
           <div className="panel detail-card">
-            <h3>Account</h3>
+            <h3>Account & Hierarchy</h3>
             <dl className="detail-dl">
               <dt>Account ID</dt><dd className="mono">{String(user.id)}</dd>
               <dt>Status</dt><dd><StatusBadge status={String(user.status)} /></dd>
-              <dt>Roles</dt><dd>{(user.roles as string[]).join(', ')}</dd>
+              <dt>Role Level</dt><dd>{(user.roles as string[]).join(', ')}</dd>
+              <dt>Upline Agent</dt><dd>{user.parent ? `@${(user.parent as { username: string }).username}` : 'Direct / Company'}</dd>
+              <dt>Downlines</dt><dd>{String(user.downlineCount ?? 0)} accounts</dd>
               <dt>Registered</dt><dd>{new Date(String(user.createdAt)).toLocaleString()}</dd>
               <dt>Last Login</dt><dd>{user.lastLoginAt ? new Date(String(user.lastLoginAt)).toLocaleString() : '—'}</dd>
             </dl>

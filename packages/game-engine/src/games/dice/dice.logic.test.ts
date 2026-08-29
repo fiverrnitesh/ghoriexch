@@ -305,8 +305,8 @@ describe('TIGER bot rules', () => {
     assert.equal(shouldAddTigerBot(seats, 6), false);
   });
 
-  it('TIGER seat is reserved beyond the 6 real-player cap', () => {
-    assert.equal(diceTableSeatCount(6), 7);
+  it('TIGER seat is reserved beyond the 8 real-player cap', () => {
+    assert.equal(diceTableSeatCount(8), 9);
   });
 });
 

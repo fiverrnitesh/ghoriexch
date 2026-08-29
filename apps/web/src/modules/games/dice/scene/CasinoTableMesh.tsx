@@ -23,7 +23,7 @@ import {
 } from './tableGeometry';
 
 /** Inset border width on the felt, in world units, converted to per-axis texture margins. */
-const FELT_BORDER = 0.34;
+const FELT_BORDER = 0.22;
 
 function useCanvasTexture(
   factory: () => HTMLCanvasElement,
@@ -56,12 +56,12 @@ export function CasinoTableMesh() {
   const geos = useMemo(() => {
     // World-projected UVs keep the leather grain continuous instead of banding
     // along the extruded side walls.
-    const rail = extrudeShape(railRingShape(), RAIL_HEIGHT, 0.115, 128);
+    const rail = extrudeShape(railRingShape(), RAIL_HEIGHT, 0.08, 128);
     projectWorldUVs(rail, TABLE_RX, TABLE_RZ);
 
     // Inset so the rail overhangs it; the reference only shows a sliver of body.
     const body = extrudeShape(
-      roundedRectShape(TABLE_RX - 0.3, TABLE_RZ - 0.26, TABLE_CORNER - 0.28),
+      roundedRectShape(TABLE_RX - 0.2, TABLE_RZ - 0.18, TABLE_CORNER - 0.2),
       BODY_HEIGHT,
       0.06,
       112,
@@ -69,7 +69,7 @@ export function CasinoTableMesh() {
     projectWorldUVs(body, TABLE_RX, TABLE_RZ);
 
     const skirt = extrudeShape(
-      roundedRectShape(TABLE_RX - 1.1, TABLE_RZ - 0.9, TABLE_CORNER - 0.9),
+      roundedRectShape(TABLE_RX - 0.9, TABLE_RZ - 0.7, TABLE_CORNER - 0.7),
       0.42,
       0.05,
       96,
@@ -87,11 +87,11 @@ export function CasinoTableMesh() {
 
     // Padded roll where the rail turns down into the felt.
     const innerRoll = createRimTube(
-      FELT_RX + 0.15,
-      FELT_RZ + 0.15,
-      FELT_CORNER + 0.14,
+      FELT_RX + 0.08,
+      FELT_RZ + 0.08,
+      FELT_CORNER + 0.07,
       RAIL_HEIGHT - 0.05,
-      0.185,
+      0.10,
     );
 
     // Cream piping line along the outer edge of the rail.

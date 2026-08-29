@@ -15,7 +15,7 @@ export const NUMBERED_FACES: Exclude<DieFace, 'BLANK'>[] = [1, 3, 4, 6];
 
 export const DEFAULT_DICE_CONFIG: DiceConfig = {
   minPlayers: 2,
-  maxPlayers: 6,
+  maxPlayers: 8,
   minEffectivePopulation: 2,
   opponentMatchWindowSeconds: 30,
   /** 10-second accept/reject window after betting closes */

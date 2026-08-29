@@ -10,15 +10,18 @@ import { env } from '../config/env.js';
 const router = Router();
 
 const registerSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(30).regex(/^[a-z0-9_]+$/),
-  password: z.string().min(8).max(128),
+  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: z.string().min(6).max(128),
   displayName: z.string().max(50).optional(),
+  email: z.string().email().optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(1).optional(),
+  email: z.string().optional(),
   password: z.string().min(1),
+}).refine((data) => !!(data.username || data.email), {
+  message: 'Username or email is required',
 });
 
 router.post('/register', authRateLimiter, validateBody(registerSchema), async (req, res, next) => {

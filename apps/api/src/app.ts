@@ -15,6 +15,7 @@ import sessionsRoutes from './routes/sessions.routes.js';
 import betsRoutes from './routes/bets.routes.js';
 import notificationsRoutes from './routes/notifications.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import agentRoutes from './routes/agent.routes.js';
 import accountRoutes from './routes/account.routes.js';
 import gameHistoryRoutes from './routes/game-history.routes.js';
 import diceRoutes from './routes/dice.routes.js';
@@ -52,6 +53,7 @@ export function createApp() {
   app.use('/api/bets', betsRoutes);
   app.use('/api/notifications', notificationsRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/agent', agentRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

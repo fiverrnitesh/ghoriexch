@@ -12,7 +12,6 @@ import { getSeatWorldPosition } from '../utils/seatPositions';
 import {
   BODY_HEIGHT,
   RAIL_HEIGHT,
-  REFERENCE_TABLE_ASPECT,
   TABLE_RX,
   TABLE_RZ,
 } from '../scene/tableGeometry';
@@ -21,12 +20,12 @@ import './DiceTable.css';
 const FLOOR_Y = -BODY_HEIGHT - 0.34;
 
 /**
- * Framing targets — smaller table, shifted up, near rail kept above bottom clip.
+ * Framing targets — table scaled up to fill the viewport (red box target).
  */
-const TARGET_NDC_WIDTH = 1.14;
-const TARGET_CENTRE_NDC_Y = 0.2;
-/** Near rail NDC y — keeps near-side name plates off the viewport bottom. */
-const TARGET_NEAR_NDC_Y = -0.62;
+const TARGET_NDC_WIDTH = 1.62;
+const TARGET_CENTRE_NDC_Y = 0.04;
+/** Near rail NDC y — keeps near-side name plates comfortably visible. */
+const TARGET_NEAR_NDC_Y = -0.56;
 
 /**
  * Phone framing. Portrait and landscape render the same landscape surface (the
@@ -35,12 +34,12 @@ const TARGET_NEAR_NDC_Y = -0.62;
  * betting rail so it reads as a full-size casino table rather than a shrunk one.
  */
 const MOBILE_FRAMING = {
-  ndcWidth: 1.58,
+  ndcWidth: 1.48,
   centreNdcY: 0,
   nearNdcY: -0.4,
   aimX: 0,
-  elevDeg: 36,
-  dist: 13.2,
+  elevDeg: 38,
+  dist: 15.2,
 };
 
 type CameraFraming = {
@@ -59,8 +58,8 @@ function pickFraming(mobilePortrait: boolean, mobileLandscape: boolean): CameraF
     centreNdcY: TARGET_CENTRE_NDC_Y,
     nearNdcY: TARGET_NEAR_NDC_Y,
     aimX: 0,
-    elevDeg: 41,
-    dist: 17,
+    elevDeg: 38,
+    dist: 15.5,
   };
 }
 
@@ -77,60 +76,28 @@ function TableCamera({
 }) {
   const { camera, size } = useThree();
   const framing = pickFraming(mobilePortrait, mobileLandscape);
-  const { ndcWidth: targetWidth, centreNdcY: targetCentreY, nearNdcY: targetNearY, aimX } = framing;
 
   useLayoutEffect(() => {
+    if (size.width <= 0 || size.height <= 0) return;
+
     const cam = camera as THREE.PerspectiveCamera;
     const aspect = size.width / Math.max(1, size.height);
     cam.aspect = aspect;
-    // A narrow FOV keeps near and far rails close to the same width, as in the reference.
-    cam.fov = aspect >= 1.9 ? 22 : aspect >= 1.6 ? 24 : aspect >= 1.3 ? 27 : 32;
+    // A narrow FOV keeps near and far rails close to the same width
+    cam.fov = aspect >= 1.9 ? 23 : aspect >= 1.6 ? 25 : aspect >= 1.3 ? 28 : 32;
     cam.near = 0.5;
     cam.far = 120;
 
-    let elevDeg = framing.elevDeg;
-    let dist = framing.dist;
-    let aimZ = 0;
+    const elevDeg = framing.elevDeg;
+    const dist = framing.dist;
+    const aimX = framing.aimX;
+    const aimZ = 0.22; // Centering bias so top and bottom player avatars have equal margins
     const pivotY = RAIL_HEIGHT;
 
-    for (let i = 0; i < 140; i++) {
-      const elev = THREE.MathUtils.degToRad(elevDeg);
-      cam.position.set(0, pivotY + Math.sin(elev) * dist, Math.cos(elev) * dist);
-      cam.up.set(0, 1, 0);
-      cam.lookAt(aimX, pivotY, aimZ);
-      cam.updateProjectionMatrix();
-
-      const left = ndc(cam, -TABLE_RX, RAIL_HEIGHT, 0);
-      const right = ndc(cam, TABLE_RX, RAIL_HEIGHT, 0);
-      const near = ndc(cam, 0, RAIL_HEIGHT, TABLE_RZ);
-      const far = ndc(cam, 0, RAIL_HEIGHT, -TABLE_RZ);
-
-      const w = right.x - left.x;
-      // NDC y grows upward, so the far rail sits above the near rail.
-      const h = far.y - near.y;
-      const screenAspect = (w * size.width) / Math.max(1e-6, h * size.height);
-      const centreY = (near.y + far.y) * 0.5;
-
-      const aspectErr = screenAspect - REFERENCE_TABLE_ASPECT;
-      const widthErr = w - targetWidth;
-      const centreErr = centreY - targetCentreY;
-      const nearErr = near.y - targetNearY;
-
-      if (
-        Math.abs(aspectErr) < 0.015 &&
-        Math.abs(widthErr) < 0.01 &&
-        Math.abs(centreErr) < 0.006 &&
-        Math.abs(nearErr) < 0.008
-      ) {
-        break;
-      }
-
-      // Raising the camera stretches the table vertically, lowering the screen aspect.
-      elevDeg = THREE.MathUtils.clamp(elevDeg + aspectErr * 2.4, 24, 58);
-      dist = THREE.MathUtils.clamp(dist * (1 + widthErr * 0.35), 8, 50);
-      aimZ = THREE.MathUtils.clamp(aimZ - centreErr * 2.2 - nearErr * 1.6, -6, 6);
-    }
-
+    const elev = THREE.MathUtils.degToRad(elevDeg);
+    cam.position.set(0, pivotY + Math.sin(elev) * dist, Math.cos(elev) * dist);
+    cam.up.set(0, 1, 0);
+    cam.lookAt(aimX, pivotY, aimZ);
     cam.updateProjectionMatrix();
 
     const left = ndc(cam, -TABLE_RX, RAIL_HEIGHT, 0);
@@ -152,13 +119,12 @@ function TableCamera({
         ((right.x - left.x) * size.width) / Math.max(1e-6, (far.y - near.y) * size.height),
       centreY: (near.y + far.y) * 0.5,
       nearY: near.y,
-      targetNearY,
       pxLeft: ((left.x + 1) / 2) * size.width,
       pxRight: ((right.x + 1) / 2) * size.width,
       pxNear: ((1 - near.y) / 2) * size.height,
       pxFar: ((1 - far.y) / 2) * size.height,
     };
-  }, [camera, size.width, size.height, mobilePortrait, mobileLandscape, targetWidth, targetCentreY, targetNearY, aimX, framing.elevDeg, framing.dist]);
+  }, [camera, size.width, size.height, mobilePortrait, mobileLandscape, framing.elevDeg, framing.dist, framing.aimX]);
 
   return null;
 }
@@ -216,7 +182,7 @@ function SeatHitTracker({
         xPct: (v.x * 0.5 + 0.5) * 100,
         yPct: (-v.y * 0.5 + 0.5) * 100,
         seatIndex: seat.seatIndex,
-        far: slot === 2 || slot === 3 || slot === 4,
+        far: slot === 2 || slot === 3 || slot === 4 || slot === 5,
       };
     });
     const sig = nextHits
@@ -342,40 +308,7 @@ export function DiceTable({
   onPlayerThrow?: (gesture: DiceThrowGesture) => void;
 }) {
   const sceneRef = useRef<HTMLDivElement>(null);
-  const [layout, setLayout] = useState<{ w: number; h: number }>(() =>
-    canvasSize ? { w: canvasSize.width, h: canvasSize.height } : { w: 0, h: 0 },
-  );
   const [hits, setHits] = useState<SeatHit[]>([]);
-
-  useLayoutEffect(() => {
-    if (canvasSize) {
-      setLayout({ w: canvasSize.width, h: canvasSize.height });
-      return;
-    }
-
-    const root = sceneRef.current;
-    if (!root) return;
-
-    const apply = () => {
-      const w = root.offsetWidth;
-      const h = root.offsetHeight;
-      if (w > 0 && h > 0) setLayout({ w, h });
-    };
-
-    apply();
-    const ro = new ResizeObserver(() => {
-      requestAnimationFrame(apply);
-    });
-    ro.observe(root);
-    window.addEventListener('resize', apply);
-    window.addEventListener('orientationchange', apply);
-
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', apply);
-      window.removeEventListener('orientationchange', apply);
-    };
-  }, [canvasSize?.width, canvasSize?.height]);
 
   const onHits = useCallback((next: SeatHit[]) => {
     setHits(next);
@@ -389,16 +322,10 @@ export function DiceTable({
     );
   }, [onSeatPositions, seats]);
 
-  const sceneStyle =
-    layout.w > 0 && layout.h > 0 && !canvasSize
-      ? { width: layout.w, height: layout.h }
-      : undefined;
-
   return (
     <div
       className={`dice-table-scene${canvasSize ? ' dice-table-scene--explicit' : ''}`}
       ref={sceneRef}
-      style={sceneStyle}
     >
       <Canvas
         className="dice-table-canvas"
@@ -416,7 +343,7 @@ export function DiceTable({
           width: '100%',
           height: '100%',
         }}
-        shadows
+        shadows="basic"
         dpr={[1, 1.75]}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ fov: 24, near: 0.5, far: 120, position: [0, 11, 13] }}
@@ -424,8 +351,6 @@ export function DiceTable({
           (window as unknown as Record<string, unknown>).__diceScene = scene;
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 0.88;
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFShadowMap;
           const pmrem = new THREE.PMREMGenerator(gl);
           scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
           pmrem.dispose();

@@ -9,13 +9,13 @@ export const TABLE_RX = 5.6;
 export const TABLE_RZ = 2.45;
 export const TABLE_CORNER = 1.92;
 
-// Reference felt/table ratios: 0.90 across the width, 0.62 across the depth.
-export const RAIL_W_X = 0.58;
-export const RAIL_W_Z = 0.93;
+// Sleeker, narrower padded gold rail border
+export const RAIL_W_X = 0.32;
+export const RAIL_W_Z = 0.42;
 
 export const FELT_RX = TABLE_RX - RAIL_W_X;
 export const FELT_RZ = TABLE_RZ - RAIL_W_Z;
-export const FELT_CORNER = 1.1;
+export const FELT_CORNER = 1.45;
 
 export const BODY_HEIGHT = 0.4;
 export const RAIL_HEIGHT = 0.29;
