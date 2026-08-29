@@ -1,7 +1,7 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '../../../../design-system';
 import { formatCurrency } from '../utils/seatPositions';
-import { CHIP_COLORS, chipPresets } from './DiceControls';
+import { DiceStakePresets } from './DiceStakePresets';
 import './DiceControls.css';
 import './SideBetModals.css';
 
@@ -25,30 +25,55 @@ export function SideBetModal({
   onSubmit: (prediction: 'WIN' | 'LOSS', amount: number) => void | Promise<void>;
 }) {
   const [prediction, setPrediction] = useState<'WIN' | 'LOSS'>('WIN');
-  const [amount, setAmount] = useState(minBet);
+  const [amount, setAmount] = useState<number>(0);
   const [customAmount, setCustomAmount] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fmt = formatAmount ?? ((n: number) => formatCurrency(n, currency));
-  const chips = chipPresets(minBet, maxBet);
 
   useEffect(() => {
     if (open) {
       setPrediction('WIN');
-      setAmount(minBet);
+      setAmount(0);
       setCustomAmount('');
       setError(null);
       setPending(false);
     }
-  }, [open, minBet, targetName]);
+  }, [open, targetName]);
 
-  const clamp = (n: number) => Math.min(maxBet, Math.max(minBet, n));
+  const handleAddAmount = (increment: number) => {
+    setAmount((prev) => {
+      const base = customAmount ? parseFloat(customAmount) || 0 : (prev || 0);
+      const next = Math.min(maxBet, base + increment);
+      setCustomAmount(String(next));
+      return next;
+    });
+  };
+
+  const handleClear = () => {
+    setAmount(0);
+    setCustomAmount('');
+  };
 
   const submit = async () => {
     setError(null);
+    const parsed = customAmount ? parseFloat(customAmount) : amount;
+    const finalAmount = Number.isFinite(parsed) ? parsed : 0;
+    if (finalAmount <= 0) {
+      setError('Please enter or select a bet amount');
+      return;
+    }
+    if (finalAmount < minBet) {
+      setError(`Minimum bet is ${fmt(minBet)}`);
+      return;
+    }
+    if (finalAmount > maxBet) {
+      setError(`Maximum bet is ${fmt(maxBet)}`);
+      return;
+    }
     setPending(true);
     try {
-      await onSubmit(prediction, clamp(amount));
+      await onSubmit(prediction, finalAmount);
       onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -85,45 +110,37 @@ export function SideBetModal({
           </div>
         </div>
 
-        <div className="dice-sidebet-modal__amount">
-          <span className="dice-sidebet-modal__label">Amount · {fmt(amount)}</span>
-          <div className="dice-controls__chips dice-sidebet-modal__chips">
-            {chips.map((chip, i) => (
-              <button
-                key={chip}
-                type="button"
-                className={`dice-controls__chip ${amount === chip ? 'dice-controls__chip--active' : ''}`}
-                style={{ '--chip-color': CHIP_COLORS[i % CHIP_COLORS.length] } as CSSProperties}
-                onClick={() => setAmount(clamp(chip))}
-                title={fmt(chip)}
-              >
-                <span className="dice-controls__chip-inner">
-                  {chip >= 1000 ? `$${chip / 1000}K` : fmt(chip)}
-                </span>
-              </button>
-            ))}
-          </div>
-          <label className="dice-sidebet-modal__amount-input">
-            <span>{currency === 'INR' ? '₹' : '$'}</span>
+        <DiceStakePresets
+          onAddAmount={handleAddAmount}
+          onClear={handleClear}
+          currency={currency}
+        />
+
+        <div className="dice-sidebet-modal__amount-dual-row">
+          <div className="dice-sidebet-modal__amount-col">
+            <span className="dice-sidebet-modal__amount-col-label">AMOUNT</span>
             <input
               type="number"
               min={minBet}
               max={maxBet}
+              inputMode="decimal"
+              className="dice-sidebet-modal__amount-input"
+              placeholder=""
               value={customAmount}
-              placeholder={`${minBet}–${maxBet}`}
-              onChange={(e) => setCustomAmount(e.target.value)}
-            />
-            <button
-              type="button"
-              className="dice-sidebet-modal__set-amt"
-              onClick={() => {
-                const parsed = parseFloat(customAmount);
-                if (Number.isFinite(parsed)) setAmount(clamp(parsed));
+              onChange={(e) => {
+                const next = e.target.value;
+                setCustomAmount(next);
+                const parsed = parseFloat(next);
+                setAmount(Number.isFinite(parsed) ? parsed : 0);
               }}
-            >
-              SET
-            </button>
-          </label>
+            />
+          </div>
+          <div className="dice-sidebet-modal__amount-col">
+            <span className="dice-sidebet-modal__amount-col-label">SUM AMOUNT</span>
+            <div className="dice-sidebet-modal__amount-box">
+              {amount > 0 ? fmt(amount) : ''}
+            </div>
+          </div>
         </div>
 
         {error ? <p className="dice-sidebet-modal__error">{error}</p> : null}
@@ -131,14 +148,19 @@ export function SideBetModal({
         <div className="dice-sidebet-modal__actions">
           <button
             type="button"
-            className="dice-sidebet-modal__submit"
+            className="ds-btn ds-btn--secondary"
+            onClick={handleClear}
             disabled={pending}
-            onClick={() => void submit()}
           >
-            {pending ? 'PLACING…' : 'PLACE SIDE BET'}
+            RESET
           </button>
-          <button type="button" className="dice-sidebet-modal__reject" disabled={pending} onClick={onClose}>
-            CANCEL
+          <button
+            type="button"
+            className="ds-btn ds-btn--gold"
+            onClick={() => void submit()}
+            disabled={pending || amount <= 0}
+          >
+            {pending ? 'PLACING…' : 'SUBMIT'}
           </button>
         </div>
       </div>
