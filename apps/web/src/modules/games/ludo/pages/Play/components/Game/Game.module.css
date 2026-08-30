@@ -7,11 +7,11 @@
   height: 100dvh;
   min-height: 100vh;
   overflow: hidden;
-  background-color: #e6d3b3;
-  background-image:
-    radial-gradient(ellipse at 50% 50%, #ecd7b9 0%, #dec6a3 100%),
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.04) 0%, transparent 40%);
+  background-color: #1a1a2e;
+  background-image: url('../../../../assets/lk_h5_bg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   user-select: none;
   touch-action: manipulation;
 }

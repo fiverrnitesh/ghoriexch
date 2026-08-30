@@ -1,10 +1,12 @@
 .diceContainer,
 .dice-container {
   --dice-scale-factor: 1.25;
-  --dice-margin: calc(var(--board-tile-size) * 0.25);
+  --dice-box-size: calc(var(--board-tile-size) * 1.5);
   position: absolute;
   padding: 0;
   margin: 0;
+  width: var(--dice-box-size);
+  height: var(--dice-box-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -15,27 +17,23 @@
   }
 
   &.blue {
-    top: 100%;
+    bottom: calc(var(--dice-box-size) * -1.2);
     left: 0;
-    margin-top: var(--dice-margin);
   }
 
   &.red {
-    bottom: 100%;
+    top: calc(var(--dice-box-size) * -1.2);
     left: 0;
-    margin-bottom: var(--dice-margin);
   }
 
   &.green {
-    bottom: 100%;
+    top: calc(var(--dice-box-size) * -1.2);
     right: 0;
-    margin-bottom: var(--dice-margin);
   }
 
   &.yellow {
-    top: 100%;
+    bottom: calc(var(--dice-box-size) * -1.2);
     right: 0;
-    margin-top: var(--dice-margin);
   }
 }
 
