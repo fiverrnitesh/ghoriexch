@@ -89,7 +89,16 @@ export function DiceMainBetModal({
 
   return (
     <Modal open={open} onClose={onClose} title="" size="sm">
-      <div className="dice-sidebet-modal">
+      <div className="dice-sidebet-modal" style={{ position: 'relative' }}>
+        <button
+          type="button"
+          className="dice-sidebet-modal__close-btn"
+          onClick={onClose}
+          aria-label="Close"
+          title="Close"
+        >
+          ✕
+        </button>
         <button
           type="button"
           className="dice-sidebet-modal__pao-btn"

@@ -421,7 +421,7 @@ describe('FINAL TIGER seating', () => {
       config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
     });
     const st = engine.getInternalState(sessionId)!;
-    assert.equal(st.maxSeats, 7);
+    assert.equal(st.maxSeats, 9);
     assert.equal(st.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
   });
 });

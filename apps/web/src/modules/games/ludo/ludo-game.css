@@ -1,0 +1,41 @@
+/* ─── Fullscreen Ludo game viewport ─── */
+
+html.ludo-game-active,
+html.ludo-game-active body {
+  overflow: hidden !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overscroll-behavior: none;
+  background-color: #180509;
+}
+
+html.ludo-game-active .ds-app-shell {
+  min-height: 100dvh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+html.ludo-game-active .ds-app-shell__main {
+  flex: 1;
+  min-height: 0;
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+html.ludo-game-active .ds-header,
+html.ludo-game-active .ds-app-shell__footer,
+html.ludo-game-active .ds-mobile-nav {
+  display: none !important;
+}

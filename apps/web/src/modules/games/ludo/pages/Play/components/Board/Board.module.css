@@ -1,0 +1,19 @@
+.board {
+  position: relative;
+  --board-side-length: min(76dvh, 76vw, 680px);
+  --player-name-spacing: calc(var(--board-tile-size) * 0.25);
+  height: var(--board-side-length);
+  width: var(--board-side-length);
+  aspect-ratio: 1 / 1;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  background-color: white;
+}
+
+.boardImage,
+.board-image {
+  height: 100%;
+  width: 100%;
+  display: block;
+  border-radius: 4px;
+}

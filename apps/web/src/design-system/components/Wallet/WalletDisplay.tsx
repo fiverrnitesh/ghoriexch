@@ -13,11 +13,11 @@ export function WalletDisplay({
   balance,
   available,
   locked,
-  currency = 'USD',
+  currency = 'PKR',
   compact,
   className = '',
 }: WalletDisplayProps) {
-  const symbol = currency === 'USD' ? '$' : currency;
+  const symbol = currency === 'PKR' ? '₨ ' : currency === 'USD' ? '$' : currency === 'INR' ? '₹ ' : `${currency} `;
 
   if (compact) {
     return (

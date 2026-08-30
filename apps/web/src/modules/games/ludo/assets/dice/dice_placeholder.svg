@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26.458 26.458" width="100%" height="100%">
+  <style>
+    @keyframes dice-roll {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+    .rolling-dice {
+      transform-origin: 13.229px 13.229px;
+      animation: dice-roll 0.4s linear infinite;
+    }
+  </style>
+  <g class="rolling-dice">
+    <rect x="2" y="2" width="22.458" height="22.458" rx="4" fill="#f8f8f8" stroke="#ccc" stroke-width="0.8" />
+    <circle cx="8" cy="8" r="2.2" fill="#333" />
+    <circle cx="18.458" cy="18.458" r="2.2" fill="#333" />
+    <circle cx="13.229" cy="13.229" r="2.2" fill="#ff0002" />
+  </g>
+</svg>

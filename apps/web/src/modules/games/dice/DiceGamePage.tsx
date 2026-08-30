@@ -154,10 +154,14 @@ export function DiceGamePage() {
   const isHolder = selfSeatIndex != null && selfSeatIndex === holderSeatIndex;
   const canBet = isBettingPhase(state) && isHolder && !state?.mainBet && !rolling;
 
+  const prevCanBetRef = useRef(false);
   useEffect(() => {
-    if (canBet && !mainBetModalOpen) {
+    if (canBet && !prevCanBetRef.current) {
       setMainBetModalOpen(true);
+    } else if (!canBet && mainBetModalOpen) {
+      setMainBetModalOpen(false);
     }
+    prevCanBetRef.current = canBet;
   }, [canBet, mainBetModalOpen]);
 
   if (loading) return <LoadingState message="Joining dice table..." />;

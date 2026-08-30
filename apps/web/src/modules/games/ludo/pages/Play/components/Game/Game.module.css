@@ -1,0 +1,76 @@
+.game {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100vh;
+  overflow: hidden;
+  background-color: #e6d3b3;
+  background-image:
+    radial-gradient(ellipse at 50% 50%, #ecd7b9 0%, #dec6a3 100%),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.04) 0%, transparent 40%);
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.exitBtn,
+.exit-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #ff0000;
+  color: #ffffff;
+  border: none;
+  width: clamp(28px, 4vw, 36px);
+  height: clamp(28px, 4vw, 36px);
+  font-size: clamp(20px, 3.2vw, 26px);
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1000;
+  transition: background-color 150ms ease, transform 100ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background-color: #d60000;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.soundBtn,
+.sound-btn {
+  position: absolute;
+  top: 0;
+  right: clamp(32px, 4.5vw, 42px);
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  border: none;
+  width: clamp(28px, 4vw, 36px);
+  height: clamp(28px, 4vw, 36px);
+  font-size: clamp(14px, 2vw, 18px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1000;
+  border-bottom-left-radius: 4px;
+  transition: background-color 150ms ease, transform 100ms ease;
+
+  &:hover,
+  &:focus-visible {
+    background-color: rgba(0, 0, 0, 0.65);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}

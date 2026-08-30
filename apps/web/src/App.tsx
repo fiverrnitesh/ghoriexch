@@ -63,9 +63,16 @@ const DiceGamePage = lazy(() =>
 const DownlinesPage = lazy(() =>
   import('./modules/agent/DownlinesPage').then((m) => ({ default: m.DownlinesPage })),
 );
+const LudoGamePage = lazy(() =>
+  import('./modules/games/ludo/LudoGamePage').then((m) => ({ default: m.LudoGamePage })),
+);
 
 function DiceRouteFallback() {
   return <LoadingState message="Loading..." />;
+}
+
+function LudoRouteFallback() {
+  return <LoadingState message="Loading Ludo..." />;
 }
 
 function AppRoutes() {
@@ -100,6 +107,47 @@ function AppRoutes() {
         <Route path="/register" element={<Navigate to="/login" replace />} />
 
         <Route path="/" element={<ProtectedRoute><LobbyPage /></ProtectedRoute>} />
+        <Route path="/lobby" element={<Navigate to="/" replace />} />
+        <Route
+          path="/games/ludo"
+          element={(
+            <ProtectedRoute>
+              <Suspense fallback={<LudoRouteFallback />}>
+                <LudoGamePage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/games/ludo/play"
+          element={(
+            <ProtectedRoute>
+              <Suspense fallback={<LudoRouteFallback />}>
+                <LudoGamePage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/play"
+          element={(
+            <ProtectedRoute>
+              <Suspense fallback={<LudoRouteFallback />}>
+                <LudoGamePage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/ludo"
+          element={(
+            <ProtectedRoute>
+              <Suspense fallback={<LudoRouteFallback />}>
+                <LudoGamePage />
+              </Suspense>
+            </ProtectedRoute>
+          )}
+        />
         <Route
           path="/games/dice"
           element={(

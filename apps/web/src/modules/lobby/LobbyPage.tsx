@@ -29,8 +29,9 @@ const FEATURED_GAMES: LobbyGameItem[] = [
     id: 'ludo',
     slug: 'ludo',
     name: 'LUDO',
-    status: 'COMING_SOON',
+    status: 'ACTIVE',
     category: 'indian-cards',
+    href: '/games/ludo',
     theme: 'ds-game-card--emerald',
   },
   {

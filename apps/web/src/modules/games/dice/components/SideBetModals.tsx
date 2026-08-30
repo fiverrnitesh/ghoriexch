@@ -84,7 +84,16 @@ export function SideBetModal({
 
   return (
     <Modal open={open} onClose={onClose} title="" size="sm">
-      <div className="dice-sidebet-modal">
+      <div className="dice-sidebet-modal" style={{ position: 'relative' }}>
+        <button
+          type="button"
+          className="dice-sidebet-modal__close-btn"
+          onClick={onClose}
+          aria-label="Close"
+          title="Close"
+        >
+          ✕
+        </button>
         <div className="dice-sidebet-modal__header">
           <span className="dice-sidebet-modal__eyebrow">Spectator Side Bet</span>
           <h2>BACK {targetName.toUpperCase()}</h2>
