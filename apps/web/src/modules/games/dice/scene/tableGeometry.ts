@@ -15,6 +15,16 @@ export const RAIL_W_Z = 0.42;
 export const FELT_RX = TABLE_RX - RAIL_W_X;
 export const FELT_RZ = TABLE_RZ - RAIL_W_Z;
 
+/** Keep dice centres on the red felt — never on the gold rail. */
+export function clampToFeltSurface(x: number, z: number, margin = 0.58) {
+  const rx = Math.max(0.45, FELT_RX - margin);
+  const rz = Math.max(0.45, FELT_RZ - margin);
+  const v = (x * x) / (rx * rx) + (z * z) / (rz * rz);
+  if (v <= 1) return { x, z };
+  const s = 1 / Math.sqrt(v);
+  return { x: x * s, z: z * s };
+}
+
 export const BODY_HEIGHT = 0.4;
 export const RAIL_HEIGHT = 0.29;
 export const FELT_Y = 0.11;

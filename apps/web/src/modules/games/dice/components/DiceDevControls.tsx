@@ -167,7 +167,7 @@ export function DiceDevControls({
             <button type="button" disabled={!!busy} onClick={() => void run('balances', () => api.post('/api/demo/reset-balances', {}))}>
               Reset Balances
             </button>
-            <button type="button" disabled={!!busy} onClick={() => navigate('/games/dice')}>
+            <button type="button" disabled={!!busy} onClick={() => navigate('/')}>
               Leave Table
             </button>
           </div>

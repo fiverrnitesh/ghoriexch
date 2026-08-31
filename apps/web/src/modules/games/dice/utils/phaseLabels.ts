@@ -1,7 +1,7 @@
 import type { DiceGameState } from '@games/game-engine/browser';
 
 /** Map backend phases to player-facing labels (no hardcoded fake phases). */
-export function getDisplayPhase(state: DiceGameState, phaseTimerSeconds?: number): string {
+export function getDisplayPhase(state: DiceGameState): string {
   const { phase, mainBet, activeMatch } = state;
 
   if (!activeMatch) return 'WAITING';

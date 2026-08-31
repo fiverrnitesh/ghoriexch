@@ -10,14 +10,34 @@ import {
   shouldShowTurnCountdown,
 } from '../utils/turnCountdown';
 import { getPhaseTimerKindFromState, type PhaseTimerKind } from '../utils/diceUiHelpers';
+import {
+  MIN_ROLL_UI_MS,
+  NO_RESULT_REVEAL_MS,
+  RESULT_REVEAL_MS,
+} from '../utils/diceAnimTiming';
+
+export interface DiceRollUiSnapshot {
+  holderSeatIndex: number;
+  opponentSeatIndex: number;
+  rollerSeatIndex: number;
+  capturedAt: number;
+}
+
+function captureRollSnapshot(st: Record<string, unknown> | null | undefined): DiceRollUiSnapshot | null {
+  const activeMatch = st?.activeMatch as { holderSeatIndex: number; opponentSeatIndex: number } | undefined;
+  if (!activeMatch) return null;
+  return {
+    holderSeatIndex: activeMatch.holderSeatIndex,
+    opponentSeatIndex: activeMatch.opponentSeatIndex,
+    rollerSeatIndex: (st?.rollerSeatIndex as number | null | undefined) ?? activeMatch.holderSeatIndex,
+    capturedAt: Date.now(),
+  };
+}
 
 const WS_URL = import.meta.env.DEV
   ? (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
   : (import.meta.env.VITE_WS_URL ?? 'http://localhost:3001');
 const FALLBACK_POLL_MS = 3_000;
-const RESULT_REVEAL_MS = 5000;
-const NO_RESULT_REVEAL_MS = 1400;
-const MIN_ROLL_ANIM_MS = 1500;
 
 export interface DiceDisplayResult {
   dice: [DieFace, DieFace];
@@ -114,7 +134,12 @@ function resolveAcceptorDisplayName(
     if (occ.type === 'BOT' && (occ.botId === acceptorId || `player_${occ.botId}` === acceptorId)) return true;
     return false;
   });
-  if (seat) return getOccupantDisplayName(seat, playerMeta);
+  if (seat) {
+    return getOccupantDisplayName(
+      seat as Parameters<typeof getOccupantDisplayName>[0],
+      playerMeta,
+    );
+  }
   if (playerMeta[acceptorId]?.displayName) return playerMeta[acceptorId].displayName;
   return acceptorId;
 }
@@ -155,6 +180,7 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
+  const [rollUiSnapshot, setRollUiSnapshot] = useState<DiceRollUiSnapshot | null>(null);
   const [phaseTimerWsSeconds, setPhaseTimerWsSeconds] = useState<number | undefined>();
   const [phaseTimerKind, setPhaseTimerKind] = useState<PhaseTimerKind | null>(null);
   const [turnTimerWsSeconds, setTurnTimerWsSeconds] = useState<number | undefined>();
@@ -234,19 +260,25 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
       const seatIndex = (pass?.payload as { rollerSeatIndex?: number } | undefined)?.rollerSeatIndex;
       const st = (nextState ?? prev) as { seats?: Array<{ seatIndex: number; occupant?: { type: string; userId?: string; botId?: string; name?: string } | null }> } | null;
       const seat = seatIndex != null ? st?.seats?.find((s) => s.seatIndex === seatIndex) ?? null : null;
-      const name = getOccupantDisplayName(seat, playerMetaRef.current);
+      const name = getOccupantDisplayName(
+        seat as Parameters<typeof getOccupantDisplayName>[0],
+        playerMetaRef.current,
+      );
       showBanner({ type: 'ROTATION', message: `Dice moving to ${name}…` }, 2500);
     }
 
     if (events.some((e) => e.type === 'dice:rotation')) {
       if (resultTimerRef.current == null) {
         setRolling(false);
+        setRollUiSnapshot(null);
       }
       showBanner({ type: 'ROTATION', message: 'Next match…' }, 2500);
     }
 
     if (events.some((e) => e.type === 'dice:rolling')) {
       showBanner({ type: 'AUTO_ROLL', message: 'Rolling dice…' }, 6000);
+      const snapSource = (prev ?? nextState) as Record<string, unknown> | null;
+      setRollUiSnapshot(captureRollSnapshot(snapSource));
       setRolling(true);
       setDisplayResult(null);
     }
@@ -279,9 +311,10 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
 
         const revealMs = Math.max(
           outcome === 'NO_RESULT' ? NO_RESULT_REVEAL_MS : RESULT_REVEAL_MS,
-          events.some((e) => e.type === 'dice:rolling') ? MIN_ROLL_ANIM_MS : 0,
+          MIN_ROLL_UI_MS,
         );
         clearResultTimer();
+        setRollUiSnapshot((snap) => snap ?? captureRollSnapshot(prev as Record<string, unknown>));
         setDisplayResult({
           dice: p.dice,
           parity: p.result.parity,
@@ -294,6 +327,7 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
         setRolling(true);
         resultTimerRef.current = window.setTimeout(() => {
           setRolling(false);
+          setRollUiSnapshot(null);
           if (settlementEvent?.payload && outcome !== 'NO_RESULT') {
             const result = settlementEvent.payload.result as DiceRoundResult;
             const roundId = String(settlementEvent.payload.roundId ?? '');
@@ -329,6 +363,7 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
       setSettlementDisplay({ result, roundId, winnerSeatIndex: seats.winnerSeatIndex, loserSeatIndex: seats.loserSeatIndex, personalOutcome });
     } else if (events.some((e) => e.type === 'dice:result')) {
       setRolling(false);
+      setRollUiSnapshot(null);
     }
   }, [showBanner]);
 
@@ -495,8 +530,12 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
   const placeMainBet = (amount: number, choice: 'ODD' | 'EVEN') =>
     sendAction(DICE_ACTIONS.PLACE_MAIN_BET, { amount, choice });
 
-  const rollDice = (meta?: { throw?: { dirX: number; dirZ: number; speed: number } }) =>
-    sendAction(DICE_ACTIONS.ROLL_DICE, meta?.throw ? { throw: meta.throw } : {});
+  const rollDice = async (meta?: { throw?: { dirX: number; dirZ: number; speed: number } }) => {
+    setRollUiSnapshot(captureRollSnapshot(stateRef.current));
+    setRolling(true);
+    setDisplayResult(null);
+    return sendAction(DICE_ACTIONS.ROLL_DICE, meta?.throw ? { throw: meta.throw } : {});
+  };
 
   const requestSideBet = (counterpartyUserId: string, prediction: 'WIN' | 'LOSS', amount: number) => {
     const sideBetId = `sb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -523,6 +562,7 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
     loading,
     error,
     rolling,
+    rollUiSnapshot,
     phaseTimerSeconds,
     phaseTimerKind: activePhaseTimerKind,
     turnTimerSeconds,

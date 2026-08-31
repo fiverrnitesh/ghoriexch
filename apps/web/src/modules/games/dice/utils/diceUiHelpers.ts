@@ -1,6 +1,6 @@
 import type { DiceGameState } from '@games/game-engine/browser';
 
-export type PhaseTimerKind = 'OPPONENT_MATCH' | 'BETTING_TIMER' | 'INTER_ROUND_PAUSE' | 'DICE_HANDOFF' | 'FINAL_LOCK' | 'PLAYER_TURN';
+export type PhaseTimerKind = 'OPPONENT_MATCH' | 'BETTING_TIMER' | 'INTER_ROUND_PAUSE' | 'DICE_HANDOFF' | 'FINAL_LOCK' | 'PLAYER_TURN' | 'SIDE_BET';
 
 export function getPhaseTimerKindFromState(
   state: Pick<DiceGameState, 'phase' | 'turnDeadlineAt'> | null | undefined,

@@ -54,8 +54,8 @@ import './design-system/styles/base.css';
 import './design-system/styles/utilities.css';
 import './modules/wallet/components/SandboxBanner.css';
 
-const DiceLobbyPage = lazy(() =>
-  import('./modules/games/dice/DiceGamePage').then((m) => ({ default: m.DiceLobbyPage })),
+const DiceAutoJoinPage = lazy(() =>
+  import('./modules/games/dice/DiceGamePage').then((m) => ({ default: m.DiceAutoJoinPage })),
 );
 const DiceGamePage = lazy(() =>
   import('./modules/games/dice/DiceGamePage').then((m) => ({ default: m.DiceGamePage })),
@@ -153,7 +153,7 @@ function AppRoutes() {
           element={(
             <ProtectedRoute>
               <Suspense fallback={<DiceRouteFallback />}>
-                <DiceLobbyPage />
+                <DiceAutoJoinPage />
               </Suspense>
             </ProtectedRoute>
           )}

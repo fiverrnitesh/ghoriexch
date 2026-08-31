@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { api } from '../../../lib/api-client';
-import { LoadingState, ErrorState, GoldButton, useToast } from '../../../design-system';
+import { LoadingState, ErrorState, useToast } from '../../../design-system';
 import { useDiceGame } from './hooks/useDiceGame';
 import { useDiceViewport } from './hooks/useDiceViewport';
 import { useDiceOrientationLock } from './hooks/useDiceOrientationLock';
@@ -18,9 +18,8 @@ import { ChipTransferAnimation } from './components/ChipTransferAnimation';
 import type { DiceThrowGesture } from './components/DiceThrowTray';
 import type { DiceThrowRequest } from './scene/TableDice3D';
 import { soundService } from './services/sound.service';
-import { openSixPlayerDemoRoom } from './utils/openSixPlayerDemoRoom';
 import type { DiceSeatView } from './components/DiceSeat';
-import { formatCurrency, getSeatWorldPosition, resolveVisualSlots, absoluteSeatForVisualSlot, diagramLabelForSeat, VISUAL_SLOT_COUNT } from './utils/seatPositions';
+import { formatCurrency, getRollerTrayWorldPos, resolveVisualSlots, absoluteSeatForVisualSlot, diagramLabelForSeat, VISUAL_SLOT_COUNT } from './utils/seatPositions';
 import { getOccupantDisplayName } from './utils/phaseLabels';
 import {
   canRequestSideBet,
@@ -28,7 +27,6 @@ import {
   isDiceHandoffPhase,
   isInterRoundPause,
   isRollReadyPhase,
-  isRollerHandoffOrRollPhase,
   isTigerOccupant,
   isUserActiveInMatch,
   resolveOccupantKey,
@@ -48,11 +46,11 @@ export function DiceGamePage() {
     playerMeta,
     refresh,
     rolling,
+    rollUiSnapshot,
     displayResult,
     settlementDisplay,
     turnTimerSeconds,
     phaseTimerSeconds,
-    phaseTimerKind,
     placeMainBet,
     rollDice,
     requestSideBet,
@@ -170,7 +168,12 @@ export function DiceGamePage() {
   }, []);
 
   const holderSeatIndex = state?.activeMatch?.holderSeatIndex ?? null;
-  const isHolder = selfSeatIndex != null && selfSeatIndex === holderSeatIndex;
+  const matchHolderSeat = rollUiSnapshot?.holderSeatIndex ?? holderSeatIndex;
+  const matchOpponentSeat = rollUiSnapshot?.opponentSeatIndex ?? (state?.activeMatch?.opponentSeatIndex ?? null);
+  const matchRollerSeat = rollUiSnapshot?.rollerSeatIndex
+    ?? (state?.rollerSeatIndex ?? holderSeatIndex);
+
+  const isHolder = selfSeatIndex != null && selfSeatIndex === matchHolderSeat;
   const canBet = isBettingPhase(state) && isHolder && !state?.mainBet && !rolling;
 
   const prevCanBetRef = useRef(false);
@@ -185,7 +188,7 @@ export function DiceGamePage() {
 
   const pendingIncomingSideBet = useMemo(() => {
     if (!user?.id || !rawState) return null;
-    const st = rawState as DiceGameState;
+    const st = rawState as unknown as DiceGameState;
     const sb = st.sideBets.find(
       (bet) => bet.status === 'PENDING'
         && (bet.counterpartyUserId === user.id || bet.targetUserId === user.id),
@@ -210,33 +213,33 @@ export function DiceGamePage() {
   }, [state]);
 
   const rollPhaseBanner = useMemo(() => {
-    if (!state || !isRollReadyPhase(state)) return null;
-    const rollerIdx = state.rollerSeatIndex ?? state.activeMatch?.holderSeatIndex ?? null;
+    if (!state || rolling || !isRollReadyPhase(state)) return null;
+    const rollerIdx = matchRollerSeat;
     const rollerSeat = rollerIdx != null
       ? state.seats.find((s) => s.seatIndex === rollerIdx) ?? null
       : null;
-    const holderSeat = state.activeMatch
-      ? state.seats.find((s) => s.seatIndex === state.activeMatch!.holderSeatIndex) ?? null
+    const holderSeat = matchHolderSeat != null
+      ? state.seats.find((s) => s.seatIndex === matchHolderSeat) ?? null
       : null;
     if (rollerSeat?.occupant && isTigerOccupant(rollerSeat.occupant)) {
       return 'Shoot rolling…';
     }
     const name = getOccupantDisplayName(rollerSeat ?? holderSeat, playerMeta);
     return `${name} — shake & throw`;
-  }, [state, playerMeta]);
+  }, [state, playerMeta, rolling, matchRollerSeat, matchHolderSeat]);
 
   const handoffBanner = useMemo(() => {
-    if (!state || !isDiceHandoffPhase(state)) return null;
-    const rollerIdx = state.rollerSeatIndex ?? state.activeMatch?.holderSeatIndex ?? null;
+    if (!state || rolling || !isDiceHandoffPhase(state)) return null;
+    const rollerIdx = matchRollerSeat;
     const rollerSeat = rollerIdx != null
       ? state.seats.find((s) => s.seatIndex === rollerIdx) ?? null
       : null;
     const name = getOccupantDisplayName(rollerSeat, playerMeta);
     return `Dice moving to ${name}…`;
-  }, [state, playerMeta]);
+  }, [state, playerMeta, rolling, matchRollerSeat]);
 
-  const isDiceHandoff = isDiceHandoffPhase(state);
-  const finalLockTimerSeconds = isRollReadyPhase(state) ? phaseTimerSeconds : undefined;
+  const isDiceHandoff = isDiceHandoffPhase(state) && !rolling;
+  const finalLockTimerSeconds = isRollReadyPhase(state) && !rolling ? phaseTimerSeconds : undefined;
   const finalLockLabel = finalLockTimerSeconds != null && finalLockTimerSeconds <= 1
     ? 'ROLL NOW'
     : 'ROLLING IN';
@@ -261,8 +264,7 @@ export function DiceGamePage() {
     },
   );
 
-  const opponentSeatIndex = state.activeMatch?.opponentSeatIndex ?? null;
-  const rollerSeatIndex = state.rollerSeatIndex ?? holderSeatIndex;
+  const rollerSeatIndex = matchRollerSeat;
   const isRoller = selfSeatIndex != null && selfSeatIndex === rollerSeatIndex;
   const isActivePlayer = user?.id ? isUserActiveInMatch(state, user.id) : false;
   const canSideBet = user?.id ? canRequestSideBet(state, user.id) : false;
@@ -278,16 +280,10 @@ export function DiceGamePage() {
     : undefined;
 
   let trayWorldPos: [number, number, number] | null = null;
-  if (rollerVisualSlot != null && isRollerHandoffOrRollPhase(state)) {
+  const rollUiActive = rolling || isDiceHandoff || isRollReadyPhase(state);
+  if (rollerVisualSlot != null && rollUiActive) {
     const isSelfRoller = selfSeatIndex != null && selfSeatIndex === rollerSeatIndex;
-    const pos = getSeatWorldPosition(rollerVisualSlot, isSelfRoller, { outwardBoost: 0.02 });
-    const len = Math.hypot(pos.x, pos.z) || 1;
-    // Park dice on the felt just in front of the roller (toward table centre).
-    trayWorldPos = [
-      pos.x - (pos.x / len) * 0.95,
-      0.42,
-      pos.z - (pos.z / len) * 0.95,
-    ];
+    trayWorldPos = getRollerTrayWorldPos(rollerVisualSlot, isSelfRoller);
   }
 
   let trayScreenPct: { x: number; y: number } | null = null;
@@ -369,8 +365,8 @@ export function DiceGamePage() {
       : isHouseSeat
         ? seatLabel
         : (meta?.displayName ?? occupant.name);
-    const isSeatHolder = seat.seatIndex === holderSeatIndex;
-    const isSeatOpponent = seat.seatIndex === opponentSeatIndex;
+    const isSeatHolder = seat.seatIndex === matchHolderSeat;
+    const isSeatOpponent = seat.seatIndex === matchOpponentSeat;
     const isActive = isSeatHolder || isSeatOpponent;
 
     const balance = isSelf && user?.id && playerMeta[user.id]?.balance
@@ -436,7 +432,7 @@ export function DiceGamePage() {
         type="button"
         className="dice-game-viewport__back-btn"
         aria-label="Exit game"
-        onClick={() => navigate('/games/dice')}
+        onClick={() => navigate('/')}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -521,7 +517,7 @@ export function DiceGamePage() {
             trayVisible={canPlayerThrow}
             trayScreenPct={trayScreenPct}
             trayWorldPos={trayWorldPos}
-            handoffActive={isDiceHandoff}
+            handoffActive={isDiceHandoff && !rolling}
             handoffTargetSeat={rollerSeatIndex}
             portraitRotated={isMobileRotate}
             onPlayerThrow={(g) => { void handlePlayerThrow(g); }}
@@ -685,47 +681,28 @@ export function DiceGamePage() {
   );
 }
 
-export function DiceLobbyPage() {
+/** Auto-joins a live table — no intermediate lobby screen. */
+export function DiceAutoJoinPage() {
   const navigate = useNavigate();
-  const [playing, setPlaying] = useState(false);
-  const [openingSixPlayer, setOpeningSixPlayer] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const playDice = async () => {
-    setPlaying(true);
+  const join = useCallback(async () => {
+    setError(null);
     try {
       const result = await api.post<{ session: { id: string } }>('/api/dice/play', {});
-      navigate(`/games/dice/play/${result.session.id}`);
+      navigate(`/games/dice/play/${result.session.id}`, { replace: true });
     } catch (err) {
-      alert((err as Error).message);
-    } finally {
-      setPlaying(false);
+      setError((err as Error).message);
     }
-  };
+  }, [navigate]);
 
-  const openSixPlayerRoom = async () => {
-    setOpeningSixPlayer(true);
-    try {
-      const id = await openSixPlayerDemoRoom();
-      navigate(`/games/dice/play/${id}`);
-    } catch (err) {
-      alert((err as Error).message);
-    } finally {
-      setOpeningSixPlayer(false);
-    }
-  };
+  useEffect(() => {
+    void join();
+  }, [join]);
 
-  return (
-    <div className="dice-lobby ds-panel ds-panel--chrome">
-      <h1>Dice</h1>
-      <p>Join a live table. You will be seated automatically.</p>
-      <div className="dice-lobby__actions">
-        <GoldButton loading={playing} onClick={() => void playDice()}>Play Dice</GoldButton>
-        {import.meta.env.DEV ? (
-          <GoldButton loading={openingSixPlayer} onClick={() => void openSixPlayerRoom()}>
-            Open 6-Player Test Room
-          </GoldButton>
-        ) : null}
-      </div>
-    </div>
-  );
+  if (error) {
+    return <ErrorState message={error} onRetry={() => void join()} />;
+  }
+
+  return <LoadingState message="Joining dice table..." />;
 }

@@ -12,6 +12,7 @@ function phaseTimerLabel(kind: PhaseTimerKind | null | undefined): string {
   if (kind === 'OPPONENT_MATCH') return 'Opponent Match';
   if (kind === 'FINAL_LOCK') return 'Roll Window';
   if (kind === 'INTER_ROUND_PAUSE') return 'Next Round';
+  if (kind === 'SIDE_BET') return 'Peer Bets';
   return 'Phase Timer';
 }
 
@@ -49,7 +50,7 @@ export function GameInfoPanel({
   const oppSeat = match ? state.seats.find((s) => s.seatIndex === match.opponentSeatIndex) : null;
   const holderName = getOccupantDisplayName(holderSeat, playerMeta);
   const oppName = getOccupantDisplayName(oppSeat, playerMeta);
-  const displayPhase = getDisplayPhase(state, phaseTimerSeconds);
+  const displayPhase = getDisplayPhase(state);
   const phaseBadge = getPhaseBadgeLabel(displayPhase);
   const peerBetOpen = state.phase === 'BETTING';
   const showTurnCountdown = shouldShowTurnCountdown(state);

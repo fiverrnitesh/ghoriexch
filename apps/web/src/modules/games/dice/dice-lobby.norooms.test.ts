@@ -9,7 +9,8 @@ describe('Dice player lobby — no room selection', () => {
       resolve(process.cwd(), 'apps/web/src/modules/games/dice/DiceGamePage.tsx'),
       'utf8',
     );
-    assert.match(src, /Play Dice/);
+    assert.match(src, /DiceAutoJoinPage/);
+    assert.match(src, /Joining dice table/);
     assert.equal(src.includes('Open Tables'), false);
     assert.equal(src.includes('DICE10SIM'), false);
     assert.equal(src.includes('10 PLAYER LIVE TEST'), false);

@@ -1,4 +1,5 @@
 import {
+  clampToFeltSurface,
   ellipseEqualArcAngles,
   ellipseOutwardNormal,
   pointOnTableRim,
@@ -149,6 +150,18 @@ export function getSeatWorldPosition(
     depth: layout.depth,
     visualSlot: slot,
   };
+}
+
+/** In-felt point in front of a seat — used for the roller tray / throw origin. */
+export function getRollerTrayWorldPos(visualSlot: number, isSelf = false): [number, number, number] {
+  const seat = getSeatWorldPosition(visualSlot, isSelf);
+  const len = Math.hypot(seat.x, seat.z) || 1;
+  const inward = 2.2;
+  const p = clampToFeltSurface(
+    seat.x - (seat.x / len) * inward,
+    seat.z - (seat.z / len) * inward,
+  );
+  return [p.x, 0.42, p.z];
 }
 
 /** Top half of the oval (negative Z) — Shoot and the two far diagonal seats. */

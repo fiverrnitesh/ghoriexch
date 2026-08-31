@@ -253,7 +253,7 @@ export function DiceMatchPanel({
                   <li key={sb.id} className="dice-match-panel__row">
                     <p className="dice-match-panel__names">
                       <strong>{playerName(sb.backerUserId, state, playerMeta)}</strong>
-                      <span>→ {playerName(sb.targetUserId, state, playerMeta)}</span>
+                      <span>→ {playerName(sb.counterpartyUserId ?? sb.targetUserId ?? '', state, playerMeta)}</span>
                     </p>
                     <p className="dice-match-panel__meta">
                       <span>{formatAmount(sb.amount)}</span>
