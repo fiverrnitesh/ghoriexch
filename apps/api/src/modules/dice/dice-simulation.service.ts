@@ -392,7 +392,7 @@ export class DiceSimulationService {
           balance: player.balance,
           availableBalance: player.balance,
           lockedBalance: 0,
-          currency: 'USD',
+          currency: 'PKR',
         },
       });
     }

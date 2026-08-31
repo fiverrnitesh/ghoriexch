@@ -10,8 +10,8 @@ import './GameInfoPanel.css';
 
 function phaseTimerLabel(kind: PhaseTimerKind | null | undefined): string {
   if (kind === 'OPPONENT_MATCH') return 'Opponent Match';
-  if (kind === 'SIDE_BET') return 'Side Betting';
-  if (kind === 'FINAL_LOCK') return 'Rolling In';
+  if (kind === 'FINAL_LOCK') return 'Roll Window';
+  if (kind === 'INTER_ROUND_PAUSE') return 'Next Round';
   return 'Phase Timer';
 }
 
@@ -28,7 +28,7 @@ export function GameInfoPanel({
   settlementDisplay,
   statusBanner,
   onReviewSideBet,
-  currency = 'USD',
+  currency = 'PKR',
 }: {
   state: DiceGameState;
   phaseTimerSeconds?: number;
@@ -51,7 +51,7 @@ export function GameInfoPanel({
   const oppName = getOccupantDisplayName(oppSeat, playerMeta);
   const displayPhase = getDisplayPhase(state, phaseTimerSeconds);
   const phaseBadge = getPhaseBadgeLabel(displayPhase);
-  const sideBetOpen = state.phase === 'SIDE_BETTING' || state.phase === 'MAIN_MATCH_CONFIRMED';
+  const peerBetOpen = state.phase === 'BETTING';
   const showTurnCountdown = shouldShowTurnCountdown(state);
   const turnLabel = isHolder ? 'YOUR TURN' : `${holderName.toUpperCase()}'S TURN`;
 
@@ -144,7 +144,7 @@ export function GameInfoPanel({
       )}
 
       {isSpectator && match && (
-        <div className="dice-info-panel__role dice-info-panel__role--spectator">Spectating — side bets available during side betting</div>
+        <div className="dice-info-panel__role dice-info-panel__role--spectator">Spectating — Haar/Zeet available during the 30s betting window</div>
       )}
       {isHolder && match && showTurnCountdown && (
         <div className="dice-info-panel__role dice-info-panel__role--active">Place your main bet before the timer expires</div>
@@ -194,7 +194,7 @@ export function GameInfoPanel({
 
       {state.sideBets.length > 0 && (
         <section className="dice-info-panel__section">
-          <h3>Side Bets</h3>
+          <h3>Peer Bets</h3>
           <ul className="dice-info-panel__sidebets">
             {state.sideBets.slice(-4).map((sb) => (
               <li key={sb.id}>
@@ -209,9 +209,9 @@ export function GameInfoPanel({
         </section>
       )}
 
-      {(isHolder || isOpponent) && pendingSideBetCount > 0 && onReviewSideBet && sideBetOpen && (
+      {(isHolder || isOpponent) && pendingSideBetCount > 0 && onReviewSideBet && peerBetOpen && (
         <button type="button" className="dice-info-panel__review-btn" onClick={onReviewSideBet}>
-          Review {pendingSideBetCount} side bet request{pendingSideBetCount > 1 ? 's' : ''}
+          Review {pendingSideBetCount} peer bet request{pendingSideBetCount > 1 ? 's' : ''}
         </button>
       )}
     </aside>

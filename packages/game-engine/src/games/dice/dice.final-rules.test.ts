@@ -15,7 +15,16 @@ import {
 import { isTurnExpired } from './dice.turn-timer.js';
 import { isPhaseExpired } from './dice.phase-timer.js';
 import type { DiceGameState, DieFace } from './dice.types.js';
-import { buildTable, lockMainBet, openSideBetting, placeAndConfirmMainBet } from './dice.test-helpers.js';
+import {
+  buildTable,
+  lockMainBet,
+  placeAndConfirmMainBet,
+  advanceInterRoundPause,
+  advanceDiceHandoff,
+  advanceFinalLock,
+  closeBettingAndRoll,
+  closeBettingWindow,
+} from './dice.test-helpers.js';
 
 const STAKE = 100;
 
@@ -30,6 +39,10 @@ async function rollForced(
   dice: [DieFace, DieFace],
   nowMs?: number,
 ) {
+  const st = engine.getInternalState(sessionId)!;
+  if (st.phase === 'DICE_HANDOFF') {
+    await advanceDiceHandoff(engine, sessionId, nowMs);
+  }
   await engine.processAction({
     sessionId,
     userId,
@@ -72,6 +85,8 @@ describe('FINAL multi-roll', () => {
     await lockMainBet(engine, sessionId);
     const result = await rollForced(engine, sessionId, 'u0', [1, 1]);
     assert.equal(result.events.some((e) => e.type === 'dice:settlement'), true);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'INTER_ROUND_PAUSE');
+    await advanceInterRoundPause(engine, sessionId);
     assert.equal(engine.getInternalState(sessionId)!.phase, 'BETTING');
   });
 
@@ -82,7 +97,7 @@ describe('FINAL multi-roll', () => {
     const result = await rollForced(engine, sessionId, 'u0', [1, 4]);
     assert.equal(result.events.some((e) => e.type === 'dice:settlement'), false);
     const st = engine.getInternalState(sessionId)!;
-    assert.equal(st.phase, 'FINAL_LOCK');
+    assert.equal(st.phase, 'DICE_HANDOFF');
     assert.equal(st.rollerSeatIndex, st.activeMatch!.opponentSeatIndex);
     assert.equal(getActiveRollerActorId(st), 'u1');
   });
@@ -94,7 +109,7 @@ describe('FINAL multi-roll', () => {
     await rollForced(engine, sessionId, 'u0', [1, 3]);
     await rollForced(engine, sessionId, 'u1', [3, 6]);
     const st = engine.getInternalState(sessionId)!;
-    assert.equal(st.phase, 'FINAL_LOCK');
+    assert.equal(st.phase, 'DICE_HANDOFF');
     assert.equal(getActiveRollerActorId(st), 'u0');
     assert.equal(st.mainBet?.amount, 100);
   });
@@ -135,19 +150,18 @@ describe('FINAL multi-roll', () => {
 });
 
 describe('FINAL betting windows', () => {
-  it('15s betting deadline is server-authoritative', () => {
+  it('30s unified betting deadline is server-authoritative', () => {
     const { engine, sessionId } = buildTable(2);
     const st = engine.getInternalState(sessionId)!;
-    assert.equal(st.config.turnTimeoutSeconds, 15);
+    assert.equal(st.config.turnTimeoutSeconds, 30);
     assert.ok(st.turnDeadlineAt);
     assert.equal(isTurnExpired(st, Date.parse(st.turnDeadlineAt) - 1), false);
     assert.equal(isTurnExpired(st, Date.parse(st.turnDeadlineAt)), true);
   });
 
-  it('no bet → skip player and next player gets a new 15s window', async () => {
+  it('no main bet at T+30 → auto main bet + FINAL_LOCK', async () => {
     const { engine, sessionId } = buildTable(3);
     const st = engine.getInternalState(sessionId)!;
-    const holderBefore = st.activeMatch!.holderSeatIndex;
     await engine.processAction({
       sessionId,
       userId: 'system',
@@ -155,31 +169,79 @@ describe('FINAL betting windows', () => {
       payload: { turnTimerId: st.turnTimerId!, systemTimeout: true, nowMs: Date.parse(st.turnDeadlineAt!) + 1 },
     });
     const after = engine.getInternalState(sessionId)!;
-    assert.notEqual(after.activeMatch!.holderSeatIndex, holderBefore);
-    assert.equal(after.phase, 'BETTING');
-    assert.equal(after.mainBet, null);
-    assert.ok(after.turnDeadlineAt);
-    assert.equal(after.config.turnTimeoutSeconds, 15);
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    assert.equal(after.mainBet?.amount, after.config.minBet);
+    assert.equal(after.mainBet?.choice, 'ODD');
+    assert.equal(after.mainBet?.locked, true);
+    assert.ok(after.finalLockEndsAt);
   });
 
-  it('repeated skipped turns keep rotating', async () => {
+  it('auto main bet uses last holder stake when available', async () => {
+    const { engine, sessionId } = buildTable(2);
+    await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u1', 250);
+    const st = engine.getInternalState(sessionId)!;
+    st.forcedDice = [3, 3];
+    engine.loadState(sessionId, st);
+    await closeBettingAndRoll(engine, sessionId);
+    await advanceInterRoundPause(engine, sessionId);
+    const next = engine.getInternalState(sessionId)!;
+    assert.equal(next.phase, 'BETTING');
+    assert.equal(next.lastHolderStakeAmount, 250);
+    await engine.processAction({
+      sessionId,
+      userId: 'system',
+      action: DICE_ACTIONS.TURN_TIMEOUT,
+      payload: {
+        turnTimerId: next.turnTimerId!,
+        systemTimeout: true,
+        nowMs: Date.parse(next.turnDeadlineAt!) + 1,
+      },
+    });
+    const auto = engine.getInternalState(sessionId)!;
+    assert.equal(auto.mainBet?.amount, 250);
+  });
+
+  it('repeated betting timeouts each open FINAL_LOCK (no silent forfeit)', async () => {
     const { engine, sessionId } = buildTable(4);
-    const seen = new Set<number>();
-    for (let i = 0; i < 4; i++) {
+    const forceWin = () => {
       const st = engine.getInternalState(sessionId)!;
-      seen.add(st.activeMatch!.holderSeatIndex);
+      st.forcedDice = [3, 3];
+      engine.loadState(sessionId, st);
+    };
+    for (let i = 0; i < 3; i++) {
+      let st = engine.getInternalState(sessionId)!;
+      if (st.phase === 'INTER_ROUND_PAUSE') await advanceInterRoundPause(engine, sessionId);
+      if (st.phase === 'DICE_HANDOFF') await advanceDiceHandoff(engine, sessionId);
+      if (st.phase === 'FINAL_LOCK') {
+        forceWin();
+        await advanceFinalLock(engine, sessionId);
+        if (engine.getInternalState(sessionId)!.phase === 'INTER_ROUND_PAUSE') {
+          await advanceInterRoundPause(engine, sessionId);
+        }
+      }
+      const current = engine.getInternalState(sessionId)!;
+      assert.equal(current.phase, 'BETTING');
       await engine.processAction({
         sessionId,
         userId: 'system',
         action: DICE_ACTIONS.TURN_TIMEOUT,
-        payload: { turnTimerId: st.turnTimerId!, systemTimeout: true, nowMs: Date.parse(st.turnDeadlineAt!) + 1 },
+        payload: {
+          turnTimerId: current.turnTimerId!,
+          systemTimeout: true,
+          nowMs: Date.parse(current.turnDeadlineAt!) + 1,
+        },
       });
+      assert.equal(engine.getInternalState(sessionId)!.phase, 'DICE_HANDOFF');
+      forceWin();
+      await advanceFinalLock(engine, sessionId);
+      if (engine.getInternalState(sessionId)!.phase === 'INTER_ROUND_PAUSE') {
+        await advanceInterRoundPause(engine, sessionId);
+      }
     }
-    assert.ok(seen.size >= 3);
     assert.equal(engine.getInternalState(sessionId)!.phase, 'BETTING');
   });
 
-  it('10s acceptance deadline after betting closes', async () => {
+  it('30s betting closes into FINAL_LOCK when main bet is placed', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     const st = engine.getInternalState(sessionId)!;
@@ -189,22 +251,24 @@ describe('FINAL betting windows', () => {
       action: DICE_ACTIONS.TURN_TIMEOUT,
       payload: { turnTimerId: st.turnTimerId!, systemTimeout: true, nowMs: Date.parse(st.turnDeadlineAt!) + 1 },
     });
-    const accept = engine.getInternalState(sessionId)!;
-    assert.equal(accept.phase, 'SIDE_BETTING');
-    assert.equal(accept.config.sideBetWindowSeconds, 10);
-    assert.ok(accept.sideBetWindowEndsAt);
+    const after = engine.getInternalState(sessionId)!;
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    assert.equal(after.config.turnTimeoutSeconds, 30);
+    after.forcedDice = [3, 3];
+    engine.loadState(sessionId, after);
+    await advanceFinalLock(engine, sessionId);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'INTER_ROUND_PAUSE');
   });
 
-  it('full acceptance records player liability', async () => {
+  it('full acceptance records counterparty liability', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     await engine.processAction({
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_full' },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_full' },
     });
-    openSideBetting(engine, sessionId);
     await engine.processAction({
       sessionId,
       userId: 'u0',
@@ -213,20 +277,19 @@ describe('FINAL betting windows', () => {
     });
     const sb = engine.getInternalState(sessionId)!.sideBets[0]!;
     assert.equal(sb.status, 'ACCEPTED');
-    assert.equal(sb.playerAcceptedAmount, 50);
-    assert.equal(sb.tigerLiability, 0);
+    assert.equal(sb.counterpartyAcceptedAmount, 50);
+    assert.equal(sb.systemLiability, 0);
   });
 
-  it('partial acceptance splits player and TIGER liability', async () => {
+  it('partial acceptance splits counterparty and system liability', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     await engine.processAction({
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'LOSS', amount: 2000, sideBetId: 'sb_part' },
+      payload: { counterpartyUserId: 'u0', prediction: 'LOSS', amount: 2000, sideBetId: 'sb_part' },
     });
-    openSideBetting(engine, sessionId);
     await engine.processAction({
       sessionId,
       userId: 'u0',
@@ -234,8 +297,8 @@ describe('FINAL betting windows', () => {
       payload: { sideBetId: 'sb_part', amount: 800, availableBalance: 1000 },
     });
     const sb = engine.getInternalState(sessionId)!.sideBets[0]!;
-    assert.equal(sb.playerAcceptedAmount, 800);
-    assert.equal(sb.tigerLiability, 1200);
+    assert.equal(sb.counterpartyAcceptedAmount, 800);
+    assert.equal(sb.systemLiability, 1200);
     assert.equal(sb.status, 'ACCEPTED');
   });
 
@@ -246,9 +309,8 @@ describe('FINAL betting windows', () => {
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 2000, sideBetId: 'sb_cap' },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 2000, sideBetId: 'sb_cap' },
     });
-    openSideBetting(engine, sessionId);
     await engine.processAction({
       sessionId,
       userId: 'u0',
@@ -256,8 +318,8 @@ describe('FINAL betting windows', () => {
       payload: { sideBetId: 'sb_cap', amount: 2000, availableBalance: 1000 },
     });
     const sb = engine.getInternalState(sessionId)!.sideBets[0]!;
-    assert.equal(sb.playerAcceptedAmount, 1000);
-    assert.equal(sb.tigerLiability, 1000);
+    assert.equal(sb.counterpartyAcceptedAmount, 1000);
+    assert.equal(sb.systemLiability, 1000);
   });
 
   it('no unmatched bet after acceptance timeout', async () => {
@@ -267,7 +329,7 @@ describe('FINAL betting windows', () => {
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 40, sideBetId: 'sb_unmatched' },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 40, sideBetId: 'sb_unmatched' },
     });
     engine.expirePendingSideBets(sessionId);
     const pending = engine.getInternalState(sessionId)!.sideBets.filter((s) => s.status === 'PENDING');
@@ -385,6 +447,47 @@ describe('FINAL rotation 2–6 with TIGER', () => {
   });
 });
 
+describe('FINAL_LOCK roll window', () => {
+  it('closeBettingWindow opens DICE_HANDOFF before FINAL_LOCK', async () => {
+    const { engine, sessionId } = buildTable(2);
+    await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u1', 100);
+    await closeBettingWindow(engine, sessionId);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'DICE_HANDOFF');
+    await advanceDiceHandoff(engine, sessionId);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'FINAL_LOCK');
+    assert.ok(engine.getInternalState(sessionId)!.finalLockEndsAt);
+  });
+
+  it('FINAL_LOCK timeout performs roll', async () => {
+    const { engine, sessionId } = buildTable(2);
+    await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u1', 100);
+    await closeBettingWindow(engine, sessionId);
+    await advanceDiceHandoff(engine, sessionId);
+    const st = engine.getInternalState(sessionId)!;
+    st.forcedDice = [1, 1];
+    engine.loadState(sessionId, st);
+    await advanceFinalLock(engine, sessionId);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'INTER_ROUND_PAUSE');
+  });
+
+  it('holder manual ROLL_DICE in FINAL_LOCK succeeds', async () => {
+    const { engine, sessionId } = buildTable(2);
+    await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u1', 100);
+    await lockMainBet(engine, sessionId);
+    const st = engine.getInternalState(sessionId)!;
+    st.forcedDice = [3, 3];
+    engine.loadState(sessionId, st);
+    const roll = await engine.processAction({
+      sessionId,
+      userId: 'u0',
+      action: DICE_ACTIONS.ROLL_DICE,
+      payload: {},
+    });
+    assert.equal(roll.events.some((e) => e.type === 'dice:result'), true);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'INTER_ROUND_PAUSE');
+  });
+});
+
 describe('FINAL persistence / stale timers', () => {
   it('refresh preserves betting deadline', () => {
     const { engine, sessionId } = buildTable(2);
@@ -421,7 +524,8 @@ describe('FINAL TIGER seating', () => {
       config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
     });
     const st = engine.getInternalState(sessionId)!;
-    assert.equal(st.maxSeats, 9);
+    assert.equal(st.maxSeats, 8);
+    assert.equal(st.seats.filter((s) => s.occupant).length, 8);
     assert.equal(st.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
   });
 });

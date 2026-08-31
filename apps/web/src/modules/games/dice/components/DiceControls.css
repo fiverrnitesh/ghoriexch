@@ -59,7 +59,7 @@
   color: #f5d76e;
   border-color: rgba(232, 197, 71, 0.45);
   background: rgba(232, 197, 71, 0.12);
-  box-shadow: 0 0 12px rgba(245, 200, 66, 0.18);
+  box-shadow: 0 0 12px rgba(255, 198, 41, 0.18);
 }
 
 .dice-controls__pao {
@@ -235,7 +235,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #1a0a00;
-  background: linear-gradient(180deg, #ffd700 0%, #c9a227 45%, #8b6914 100%);
+  background: linear-gradient(180deg, #FFC629 0%, #D9A01B 45%, #8b6914 100%);
   border: 1px solid rgba(255, 248, 220, 0.5);
   border-radius: 10px;
   cursor: pointer;
@@ -416,7 +416,7 @@
   font-weight: 800;
   letter-spacing: 0.1em;
   color: #1a0a00;
-  background: linear-gradient(180deg, #f3e08a, #c9a227);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
   cursor: pointer;
 }
 

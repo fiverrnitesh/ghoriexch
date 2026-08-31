@@ -203,7 +203,8 @@ export function scheduleTurnTimer(
       if (!current || current.turnTimerId !== turnTimerId) return;
       const rem = getTurnRemainingMs(current);
       if (io) {
-        emitGameTimer(io, sessionId, { phase: 'PLAYER_TURN', remainingMs: rem });
+        const phase = current.phase === 'BETTING' ? 'BETTING_TIMER' : 'PLAYER_TURN';
+        emitGameTimer(io, sessionId, { phase, remainingMs: rem });
       }
     };
 

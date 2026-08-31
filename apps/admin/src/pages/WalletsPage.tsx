@@ -21,9 +21,9 @@ export function WalletsPage() {
             const u = r.user as { id: string; username: string };
             return <Link to={`/users/${u.id}`} className="link-gold">{u.username}</Link>;
           }},
-          { key: 'balance', label: 'Balance', render: (r) => `$${r.balance}` },
-          { key: 'availableBalance', label: 'Available', render: (r) => `$${r.availableBalance}` },
-          { key: 'lockedBalance', label: 'Locked', render: (r) => `$${r.lockedBalance}` },
+          { key: 'balance', label: 'Balance', render: (r) => `₨ ${r.balance}` },
+          { key: 'availableBalance', label: 'Available', render: (r) => `₨ ${r.availableBalance}` },
+          { key: 'lockedBalance', label: 'Locked', render: (r) => `₨ ${r.lockedBalance}` },
           { key: 'currency', label: 'Currency' },
         ]}
         rows={data?.items ?? []}
@@ -59,7 +59,7 @@ export function TransactionsPage() {
         columns={[
           { key: 'user', label: 'User', render: (r) => String((r.user as { username: string })?.username ?? '—') },
           { key: 'type', label: 'Type' },
-          { key: 'amount', label: 'Amount', render: (r) => `$${r.amount}` },
+          { key: 'amount', label: 'Amount', render: (r) => `₨ ${r.amount}` },
           { key: 'status', label: 'Status' },
           { key: 'description', label: 'Description' },
           { key: 'createdAt', label: 'Date', render: (r) => new Date(String(r.createdAt)).toLocaleString() },

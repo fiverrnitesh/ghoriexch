@@ -23,7 +23,7 @@ export async function getDicePlayerMeta(state: DiceGameState | Prisma.JsonValue 
     meta[u.id] = {
       displayName: u.displayName ?? u.username,
       balance: u.wallet ? decimalToString(u.wallet.availableBalance) : '0',
-      currency: u.wallet?.currency ?? 'USD',
+      currency: u.wallet?.currency ?? 'PKR',
       avatarUrl: u.avatarUrl,
     };
   }
@@ -35,7 +35,7 @@ export async function getDicePlayerMeta(state: DiceGameState | Prisma.JsonValue 
       const entry = {
         displayName: occ.name === 'TIGER' ? 'Shoot' : (occ.name ?? 'Shoot'),
         balance: '25000',
-        currency: 'USD',
+        currency: 'PKR',
         avatarUrl: occ.avatarUrl ?? `https://api.dicebear.com/7.x/personas/svg?seed=${occ.botId}`,
       };
       meta[occ.botId] = entry;

@@ -40,9 +40,9 @@ export function GameHistory({ items, emptyMessage = 'No game history yet' }: Gam
             <span className="ds-list-row__meta">{item.date}</span>
           </div>
           <div className="ds-list-row__values">
-            <span className="ds-list-row__amount">${item.amount}</span>
+            <span className="ds-list-row__amount">₨ {item.amount}</span>
             <span className={`ds-badge ds-badge--${statusBadge(item.status)}`}>{item.status}</span>
-            {item.payout && <span className="ds-list-row__payout">+${item.payout}</span>}
+            {item.payout && <span className="ds-list-row__payout">+₨ {item.payout}</span>}
           </div>
         </div>
       ))}
@@ -82,7 +82,7 @@ export function TransactionList({ items, emptyMessage = 'No transactions yet' }:
           </div>
           <div className="ds-list-row__values">
             <span className={`ds-list-row__amount ${isDebit(item.type) ? 'ds-list-row__amount--debit' : 'ds-list-row__amount--credit'}`}>
-              {isDebit(item.type) ? '-' : '+'}${item.amount}
+              {isDebit(item.type) ? '-' : '+'}₨ {item.amount}
             </span>
             <span className={`ds-badge ds-badge--${item.status === 'COMPLETED' ? 'live' : 'muted'}`}>{item.status}</span>
           </div>

@@ -10,7 +10,7 @@ const FADE_MS = 500;
 export function DiceSettlementOverlay({
   result,
   winnerName,
-  currency = 'USD',
+  currency = 'PKR',
   personalOutcome,
   roundId,
 }: {

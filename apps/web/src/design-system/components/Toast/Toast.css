@@ -54,7 +54,7 @@
 
 .ds-notification--unread {
   border-color: var(--ds-border-gold);
-  box-shadow: var(--ds-shadow-sm), 0 0 0 1px rgba(245, 200, 66, 0.08);
+  box-shadow: var(--ds-shadow-sm), 0 0 0 1px rgba(255, 198, 41, 0.08);
 }
 
 .ds-notification__header {

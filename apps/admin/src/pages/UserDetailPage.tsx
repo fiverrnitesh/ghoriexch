@@ -82,9 +82,9 @@ export function UserDetailPage() {
           <SandboxBanner message="Viewing sandbox wallet data when sandbox mode is enabled." />
           {wallet ? (
             <dl className="detail-dl">
-              <dt>Balance</dt><dd>${wallet.balance}</dd>
-              <dt>Available</dt><dd>${wallet.availableBalance}</dd>
-              <dt>Locked</dt><dd>${wallet.lockedBalance}</dd>
+              <dt>Balance</dt><dd>₨ {wallet.balance}</dd>
+              <dt>Available</dt><dd>₨ {wallet.availableBalance}</dd>
+              <dt>Locked</dt><dd>₨ {wallet.lockedBalance}</dd>
               <dt>Currency</dt><dd>{wallet.currency}</dd>
             </dl>
           ) : <p className="text-muted">No wallet</p>}
@@ -95,7 +95,7 @@ export function UserDetailPage() {
         <DataTable
           columns={[
             { key: 'type', label: 'Type' },
-            { key: 'amount', label: 'Amount', render: (r) => `$${r.amount}` },
+            { key: 'amount', label: 'Amount', render: (r) => `₨ ${r.amount}` },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={String(r.status)} /> },
             { key: 'createdAt', label: 'Date', render: (r) => new Date(String(r.createdAt)).toLocaleString() },
           ]}
@@ -108,7 +108,7 @@ export function UserDetailPage() {
         <DataTable
           columns={[
             { key: 'game', label: 'Game', render: (r) => String((r.game as { name: string })?.name ?? '—') },
-            { key: 'amount', label: 'Amount', render: (r) => `$${r.amount}` },
+            { key: 'amount', label: 'Amount', render: (r) => `₨ ${r.amount}` },
             { key: 'status', label: 'Status', render: (r) => <StatusBadge status={String(r.status)} /> },
             { key: 'createdAt', label: 'Date', render: (r) => new Date(String(r.createdAt)).toLocaleString() },
           ]}

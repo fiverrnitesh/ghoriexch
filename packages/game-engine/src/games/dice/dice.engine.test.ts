@@ -5,10 +5,10 @@ import { DICE_ACTIONS, DEFAULT_DICE_CONFIG } from './dice.constants.js';
 import { assignSeat, createEmptySeats, evaluateSideBet } from './dice.logic.js';
 import { startTurnTimer } from './dice.turn-timer.js';
 import type { DiceGameState } from './dice.types.js';
-import { buildTable, lockMainBet, openSideBetting, placeAndConfirmMainBet, DEFAULT_TEST_STATE_FIELDS } from './dice.test-helpers.js';
+import { buildTable, lockMainBet, placeAndConfirmMainBet, advanceInterRoundPause, DEFAULT_TEST_STATE_FIELDS } from './dice.test-helpers.js';
 
-describe('DiceGameEngine — side bets', () => {
-  it('spectator can request side bet during betting window', async () => {
+describe('DiceGameEngine — peer bets (Haar/Zeet)', () => {
+  it('spectator can request peer bet during unified betting window', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     const result = await engine.processAction({
@@ -16,7 +16,7 @@ describe('DiceGameEngine — side bets', () => {
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
       payload: {
-        targetUserId: 'u0',
+        counterpartyUserId: 'u0',
         prediction: 'WIN',
         amount: 50,
         sideBetId: 'sb_test_1',
@@ -28,16 +28,15 @@ describe('DiceGameEngine — side bets', () => {
     assert.equal(state.sideBets[0]!.status, 'PENDING');
   });
 
-  it('active player can accept side bet', async () => {
+  it('active player can accept peer bet', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     await engine.processAction({
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'LOSS', amount: 25, sideBetId: 'sb_test_2' },
+      payload: { counterpartyUserId: 'u0', prediction: 'LOSS', amount: 25, sideBetId: 'sb_test_2' },
     });
-    openSideBetting(engine, sessionId);
     const result = await engine.processAction({
       sessionId,
       userId: 'u0',
@@ -48,16 +47,15 @@ describe('DiceGameEngine — side bets', () => {
     assert.equal(engine.getInternalState(sessionId)!.sideBets[0]!.status, 'ACCEPTED');
   });
 
-  it('active player reject assigns remainder to TIGER', async () => {
+  it('reject assigns remainder to system with counterparty display', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     await engine.processAction({
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 25, sideBetId: 'sb_test_3' },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 25, sideBetId: 'sb_test_3' },
     });
-    openSideBetting(engine, sessionId);
     const result = await engine.processAction({
       sessionId,
       userId: 'u0',
@@ -67,25 +65,24 @@ describe('DiceGameEngine — side bets', () => {
     assert.equal(result.events.some((e) => e.type === 'dice:side_bet_accepted'), true);
     const sb = engine.getInternalState(sessionId)!.sideBets[0]!;
     assert.equal(sb.status, 'ACCEPTED');
-    assert.equal(sb.tigerLiability, 25);
-    assert.equal(sb.playerAcceptedAmount, 0);
+    assert.equal(sb.systemLiability, 25);
+    assert.equal(sb.displayAcceptedByUserId, 'u0');
   });
 
-  it('spectator can request side bet during SIDE_BETTING', async () => {
+  it('peer bet with any seated counterparty', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
-    openSideBetting(engine, sessionId);
     const result = await engine.processAction({
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 40, sideBetId: 'sb_side_window' },
+      payload: { counterpartyUserId: 'u2', prediction: 'WIN', amount: 40, sideBetId: 'sb_peer' },
     });
     assert.equal(result.events.some((e) => e.type === 'dice:side_bet_request'), true);
     assert.equal(engine.getInternalState(sessionId)!.sideBets.at(-1)?.status, 'PENDING');
   });
 
-  it('rejects side bet after betting window closes', async () => {
+  it('rejects peer bet after betting window closes', async () => {
     const { engine, sessionId } = buildTable(3);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100);
     const state = engine.getInternalState(sessionId)!;
@@ -156,6 +153,8 @@ describe('DiceGameEngine — bot participation', () => {
     });
 
     assert.equal(result.events.some((e) => e.type === 'dice:result'), true);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'INTER_ROUND_PAUSE');
+    await advanceInterRoundPause(engine, sessionId);
     assert.equal(engine.getInternalState(sessionId)!.phase, 'BETTING');
   });
 });
@@ -353,18 +352,16 @@ describe('DiceGameEngine — authorization', () => {
     );
   });
 
-  it('rejects side bet on inactive player', async () => {
+  it('allows peer bet with any seated counterparty', async () => {
     const { engine, sessionId } = buildTable(4);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u3', 100);
-    await assert.rejects(
-      () => engine.processAction({
-        sessionId,
-        userId: 'u2',
-        action: DICE_ACTIONS.REQUEST_SIDE_BET,
-        payload: { targetUserId: 'u1', prediction: 'WIN', amount: 50, sideBetId: 'sb_bad_target' },
-      }),
-      /active player/,
-    );
+    const result = await engine.processAction({
+      sessionId,
+      userId: 'u2',
+      action: DICE_ACTIONS.REQUEST_SIDE_BET,
+      payload: { counterpartyUserId: 'u1', prediction: 'WIN', amount: 50, sideBetId: 'sb_peer_cp' },
+    });
+    assert.equal(result.events.some((e) => e.type === 'dice:side_bet_request'), true);
   });
 
   it('rejects duplicate side bet id', async () => {
@@ -374,16 +371,16 @@ describe('DiceGameEngine — authorization', () => {
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_dup' },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_dup' },
     });
     await assert.rejects(
       () => engine.processAction({
         sessionId,
         userId: 'u1',
         action: DICE_ACTIONS.REQUEST_SIDE_BET,
-        payload: { targetUserId: 'u0', prediction: 'LOSS', amount: 25, sideBetId: 'sb_dup' },
+        payload: { counterpartyUserId: 'u0', prediction: 'LOSS', amount: 25, sideBetId: 'sb_dup' },
       }),
-      /Duplicate side bet/,
+      /Duplicate peer bet/,
     );
   });
 });
@@ -458,6 +455,7 @@ describe('DiceGameEngine — multi-round stability', () => {
       const holderId = holderSeat === 0 ? 'u0' : 'tiger';
       const result = await playRound(engine, sessionId, holderId, diceSequence[i]!);
       assert.equal(result.events.some((e) => e.type === 'dice:settlement'), true);
+      await advanceInterRoundPause(engine, sessionId);
       const stateAfter = engine.getInternalState(sessionId)!;
       assert.equal(stateAfter.phase, 'BETTING');
       assert.equal(stateAfter.mainBet, null);
@@ -497,13 +495,16 @@ describe('DiceGameEngine — multi-round stability', () => {
     engine.loadState(sessionId, fourState);
 
     await playRound(engine, sessionId, 'u0', [1, 1]);
+    await advanceInterRoundPause(engine, sessionId);
     assert.deepEqual(engine.getInternalState(sessionId)!.activeMatch, { holderSeatIndex: 0, opponentSeatIndex: 2 });
 
     await playRound(engine, sessionId, 'u0', [4, 4]);
-    assert.deepEqual(engine.getInternalState(sessionId)!.activeMatch, { holderSeatIndex: 2, opponentSeatIndex: 1 });
+    await advanceInterRoundPause(engine, sessionId);
+    assert.deepEqual(engine.getInternalState(sessionId)!.activeMatch, { holderSeatIndex: 2, opponentSeatIndex: 3 });
 
     await playRound(engine, sessionId, 'u2', [4, 4], 'EVEN');
-    assert.deepEqual(engine.getInternalState(sessionId)!.activeMatch, { holderSeatIndex: 2, opponentSeatIndex: 0 });
+    await advanceInterRoundPause(engine, sessionId);
+    assert.deepEqual(engine.getInternalState(sessionId)!.activeMatch, { holderSeatIndex: 2, opponentSeatIndex: 1 });
   });
 
   it('settlement event captures completed match before rotation', async () => {
@@ -535,20 +536,21 @@ describe('DiceGameEngine — multi-round stability', () => {
 });
 
 describe('DiceGameEngine — table capacity', () => {
-  it('rejects join when table is full (6 real users + TIGER)', async () => {
+  it('rejects join when 7 real users are seated', async () => {
     const engine = new DiceGameEngine();
     const { sessionId } = await engine.createSession({
       hostUserId: 'host',
       config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
     });
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 7; i++) {
       await engine.joinSession({ sessionId, userId: `u${i}` });
     }
     const state = engine.getInternalState(sessionId)!;
-    assert.equal(state.seats.filter((s) => s.occupant?.type === 'USER').length, 8);
+    assert.equal(state.seats.filter((s) => s.occupant?.type === 'USER').length, 7);
     assert.equal(state.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
+    assert.equal(state.seats.filter((s) => s.occupant).length, 8);
     await assert.rejects(
-      () => engine.joinSession({ sessionId, userId: 'u8' }),
+      () => engine.joinSession({ sessionId, userId: 'u7' }),
       /Table full/,
     );
   });
@@ -560,12 +562,36 @@ describe('DiceGameEngine — table capacity', () => {
       config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
     });
     const empty = engine.getInternalState(sessionId)!;
-    assert.equal(empty.maxSeats, 9);
+    assert.equal(empty.maxSeats, 8);
     assert.equal(empty.seats.filter((s) => s.occupant?.type === 'USER').length, 0);
+    assert.equal(empty.seats.filter((s) => s.occupant).length, 8);
     assert.equal(empty.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
+    assert.equal(empty.activeMatch, null);
     await engine.joinSession({ sessionId, userId: 'u0' });
     const after = engine.getInternalState(sessionId)!;
     assert.equal(after.seats.filter((s) => s.occupant?.type === 'USER').length, 1);
+    assert.equal(after.seats.find((s) => s.occupant?.type === 'USER')?.seatIndex, 0);
     assert.equal(after.seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger'), true);
+    assert.deepEqual(after.activeMatch, { holderSeatIndex: 0, opponentSeatIndex: 4 });
+  });
+
+  it('second real sits at C; leave at B refills a filler', async () => {
+    const engine = new DiceGameEngine();
+    const { sessionId } = await engine.createSession({
+      hostUserId: 'host',
+      config: DEFAULT_DICE_CONFIG as unknown as Record<string, unknown>,
+    });
+    await engine.joinSession({ sessionId, userId: 'u0' });
+    await engine.joinSession({ sessionId, userId: 'u1' });
+    const seated = engine.getInternalState(sessionId)!;
+    assert.equal(seated.seats.find((s) => s.occupant?.userId === 'u0')?.seatIndex, 0);
+    assert.equal(seated.seats.find((s) => s.occupant?.userId === 'u1')?.seatIndex, 7);
+    await engine.leaveSession({ sessionId, userId: 'u0' });
+    const after = engine.getInternalState(sessionId)!;
+    assert.equal(after.seats.find((s) => s.occupant?.userId === 'u1')?.seatIndex, 7);
+    assert.equal(after.seats.find((s) => s.seatIndex === 0)?.occupant?.type, 'BOT');
+    assert.equal(after.seats.find((s) => s.seatIndex === 0)?.occupant?.botId, 'filler_b');
+    assert.equal(after.seats.filter((s) => s.occupant).length, 8);
+    assert.ok(after.activeMatch);
   });
 });

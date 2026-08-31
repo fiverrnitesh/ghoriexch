@@ -22,9 +22,24 @@ export function DiceDevControls({
     phase: string;
     mainBet: boolean;
     canSideBet: boolean;
+    pendingPeerBetCount?: number;
     role: string;
     seated: boolean;
     clickableSeats: string[];
+    match?: {
+      holder: number;
+      opponent: number;
+      holderLabel: string;
+      opponentLabel: string;
+    } | null;
+    seats?: Array<{
+      seatIndex: number;
+      label: string;
+      name: string;
+      type: string | null;
+      botId?: string;
+      userId?: string;
+    }>;
   } | null;
 }) {
   const navigate = useNavigate();
@@ -161,9 +176,13 @@ export function DiceDevControls({
             <pre className="dice-dev-controls__debug">{`phase: ${debug.phase}
 mainBet: ${debug.mainBet ? 'yes' : 'no'}
 canSideBet: ${debug.canSideBet}
+pendingPeerBets: ${debug.pendingPeerBetCount ?? 0}
 role: ${debug.role}
 seated: ${debug.seated}
-clickable: ${debug.clickableSeats.join(', ') || 'none'}`}</pre>
+clickable: ${debug.clickableSeats.join(', ') || 'none'}
+match: ${debug.match ? `${debug.match.holderLabel}(${debug.match.holder}) vs ${debug.match.opponentLabel}(${debug.match.opponent})` : 'none'}
+seats:
+${(debug.seats ?? []).map((s) => `  ${s.label}#${s.seatIndex} ${s.name} [${s.type ?? 'empty'}${s.botId ? `/${s.botId}` : ''}]`).join('\n')}`}</pre>
           ) : null}
         </div>
       )}

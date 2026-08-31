@@ -9,7 +9,8 @@ import { useDiceOrientationLock } from './hooks/useDiceOrientationLock';
 import { DiceDevControls } from './components/DiceDevControls';
 import { DiceTable, type SeatScreenPos } from './components/DiceTable';
 import { DiceMainBetModal } from './components/DiceMainBetModal';
-import { SideBetModal } from './components/SideBetModals';
+import { SideBetModal, IncomingSideBetModal } from './components/SideBetModals';
+import { DiceCountdownTimer } from './components/DiceCountdownTimer';
 import { DiceMobileHud } from './components/DiceMobileHud';
 import { DiceMobileShell } from './components/DiceMobileShell';
 import { DiceSettlementOverlay } from './components/DiceSettlementOverlay';
@@ -19,12 +20,15 @@ import type { DiceThrowRequest } from './scene/TableDice3D';
 import { soundService } from './services/sound.service';
 import { openSixPlayerDemoRoom } from './utils/openSixPlayerDemoRoom';
 import type { DiceSeatView } from './components/DiceSeat';
-import { formatCurrency, getSeatWorldPosition, resolveVisualSlots, VISUAL_SLOT_COUNT } from './utils/seatPositions';
+import { formatCurrency, getSeatWorldPosition, resolveVisualSlots, absoluteSeatForVisualSlot, diagramLabelForSeat, VISUAL_SLOT_COUNT } from './utils/seatPositions';
 import { getOccupantDisplayName } from './utils/phaseLabels';
 import {
   canRequestSideBet,
   isBettingPhase,
+  isDiceHandoffPhase,
+  isInterRoundPause,
   isRollReadyPhase,
+  isRollerHandoffOrRollPhase,
   isTigerOccupant,
   isUserActiveInMatch,
   resolveOccupantKey,
@@ -52,11 +56,18 @@ export function DiceGamePage() {
     placeMainBet,
     rollDice,
     requestSideBet,
+    acceptSideBet,
+    rejectSideBet,
+    statusBanner,
   } = useDiceGame(sessionId, user?.id);
 
   const state = rawState as DiceGameState | null;
   const [mainBetModalOpen, setMainBetModalOpen] = useState(false);
-  const [sideBetTarget, setSideBetTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [sideBetTarget, setSideBetTarget] = useState<{
+    userId: string;
+    name: string;
+    prediction: 'WIN' | 'LOSS';
+  } | null>(null);
   const { isMobileLandscape, isMobileGameLayout, isMobileRotate, mode, size } = useDiceViewport();
   useDiceOrientationLock(isMobileGameLayout);
 
@@ -83,6 +94,14 @@ export function DiceGamePage() {
 
   const [throwRequest, setThrowRequest] = useState<DiceThrowRequest | null>(null);
   const [localThrowId, setLocalThrowId] = useState<string | null>(null);
+  const lastAcceptToastRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!statusBanner?.message.startsWith('Accepted by')) return;
+    if (lastAcceptToastRef.current === statusBanner.message) return;
+    lastAcceptToastRef.current = statusBanner.message;
+    toast(statusBanner.message, 'success');
+  }, [statusBanner, toast]);
 
   useEffect(() => {
     soundService.unlock();
@@ -164,6 +183,64 @@ export function DiceGamePage() {
     prevCanBetRef.current = canBet;
   }, [canBet, mainBetModalOpen]);
 
+  const pendingIncomingSideBet = useMemo(() => {
+    if (!user?.id || !rawState) return null;
+    const st = rawState as DiceGameState;
+    const sb = st.sideBets.find(
+      (bet) => bet.status === 'PENDING'
+        && (bet.counterpartyUserId === user.id || bet.targetUserId === user.id),
+    );
+    if (!sb) return null;
+    const backerName = playerMeta[sb.backerUserId]?.displayName ?? sb.backerUserId;
+    return { id: sb.id, backerName, amount: sb.amount, prediction: sb.prediction };
+  }, [rawState, user?.id, playerMeta]);
+
+  const pendingPeerBetsByCounterparty = useMemo(() => {
+    const map = new Map<string, Array<{ prediction: 'WIN' | 'LOSS'; amount: number }>>();
+    if (!state || state.phase !== 'BETTING') return map;
+    for (const sb of state.sideBets) {
+      if (sb.status !== 'PENDING') continue;
+      const target = sb.counterpartyUserId ?? sb.targetUserId;
+      if (!target) continue;
+      const list = map.get(target) ?? [];
+      list.push({ prediction: sb.prediction, amount: sb.amount });
+      map.set(target, list);
+    }
+    return map;
+  }, [state]);
+
+  const rollPhaseBanner = useMemo(() => {
+    if (!state || !isRollReadyPhase(state)) return null;
+    const rollerIdx = state.rollerSeatIndex ?? state.activeMatch?.holderSeatIndex ?? null;
+    const rollerSeat = rollerIdx != null
+      ? state.seats.find((s) => s.seatIndex === rollerIdx) ?? null
+      : null;
+    const holderSeat = state.activeMatch
+      ? state.seats.find((s) => s.seatIndex === state.activeMatch!.holderSeatIndex) ?? null
+      : null;
+    if (rollerSeat?.occupant && isTigerOccupant(rollerSeat.occupant)) {
+      return 'Shoot rolling…';
+    }
+    const name = getOccupantDisplayName(rollerSeat ?? holderSeat, playerMeta);
+    return `${name} — shake & throw`;
+  }, [state, playerMeta]);
+
+  const handoffBanner = useMemo(() => {
+    if (!state || !isDiceHandoffPhase(state)) return null;
+    const rollerIdx = state.rollerSeatIndex ?? state.activeMatch?.holderSeatIndex ?? null;
+    const rollerSeat = rollerIdx != null
+      ? state.seats.find((s) => s.seatIndex === rollerIdx) ?? null
+      : null;
+    const name = getOccupantDisplayName(rollerSeat, playerMeta);
+    return `Dice moving to ${name}…`;
+  }, [state, playerMeta]);
+
+  const isDiceHandoff = isDiceHandoffPhase(state);
+  const finalLockTimerSeconds = isRollReadyPhase(state) ? phaseTimerSeconds : undefined;
+  const finalLockLabel = finalLockTimerSeconds != null && finalLockTimerSeconds <= 1
+    ? 'ROLL NOW'
+    : 'ROLLING IN';
+
   if (loading) return <LoadingState message="Joining dice table..." />;
   if (error || !state) return <ErrorState message={error ?? 'Failed to load game'} onRetry={() => navigate('/games/dice')} />;
 
@@ -201,7 +278,7 @@ export function DiceGamePage() {
     : undefined;
 
   let trayWorldPos: [number, number, number] | null = null;
-  if (rollerVisualSlot != null) {
+  if (rollerVisualSlot != null && isRollerHandoffOrRollPhase(state)) {
     const isSelfRoller = selfSeatIndex != null && selfSeatIndex === rollerSeatIndex;
     const pos = getSeatWorldPosition(rollerVisualSlot, isSelfRoller, { outwardBoost: 0.02 });
     const len = Math.hypot(pos.x, pos.z) || 1;
@@ -247,35 +324,31 @@ export function DiceGamePage() {
     }
   };
 
-  const openSideBetForSeat = (seatIndex: number, occupantUserId: string, name: string) => {
-    if (seatIndex !== holderSeatIndex && seatIndex !== opponentSeatIndex) {
-      toast('Side bets are only on the holder or opponent', 'warning');
-      return;
-    }
+  const openPeerBet = (occupantUserId: string, name: string, prediction: 'WIN' | 'LOSS') => {
     if (!user?.id) {
-      toast('Sign in to place a side bet', 'warning');
+      toast('Sign in to place a bet', 'warning');
       return;
     }
-    const seated = state.seats.some(
+    if (occupantUserId === user.id) {
+      toast('Pick another player as counterparty', 'warning');
+      return;
+    }
+    const seated = state?.seats.some(
       (s) => s.occupant?.type === 'USER' && s.occupant.userId === user.id,
     );
     if (!seated) {
       toast('You are not seated at this table', 'warning');
       return;
     }
-    if (isUserActiveInMatch(state, user.id)) {
-      toast('You are active in this match', 'warning');
+    if (!state || isUserActiveInMatch(state, user.id)) {
+      toast('Active players use main bet only', 'warning');
       return;
     }
-    if (!state.mainBet) {
-      toast('Main bet not placed yet', 'warning');
+    if (state.phase !== 'BETTING') {
+      toast('Betting window is closed', 'warning');
       return;
     }
-    if (state.phase !== 'BETTING' && state.phase !== 'SIDE_BETTING') {
-      toast('Side betting is not open', 'warning');
-      return;
-    }
-    setSideBetTarget({ userId: occupantUserId, name });
+    setSideBetTarget({ userId: occupantUserId, name, prediction });
   };
 
   for (const seat of occupiedSeats) {
@@ -287,50 +360,36 @@ export function DiceGamePage() {
     if (visualSlot === undefined) continue;
 
     const occupantUserId = resolveOccupantKey(occupant);
+    const isHouseSeat = isTigerOccupant(occupant)
+      || occupant.type === 'BOT'
+      || (typeof occupant.userId === 'string' && occupant.userId.startsWith('player_'));
+    const seatLabel = diagramLabelForSeat(seat.seatIndex);
+    const displayName = isTigerOccupant(occupant)
+      ? 'Shoot'
+      : isHouseSeat
+        ? seatLabel
+        : (meta?.displayName ?? occupant.name);
     const isSeatHolder = seat.seatIndex === holderSeatIndex;
     const isSeatOpponent = seat.seatIndex === opponentSeatIndex;
     const isActive = isSeatHolder || isSeatOpponent;
-    const seatClickable = canSideBet && isActive && !!occupantUserId;
-    const seatInteractive = isActive && !!occupantUserId;
 
     const balance = isSelf && user?.id && playerMeta[user.id]?.balance
       ? formatAmount(parseFloat(playerMeta[user.id].balance!) || 0)
       : undefined;
 
-    let seatTimerSeconds: number | undefined;
-    let seatTimerMaxSeconds = 15;
-    let seatTimerActive = false;
+    const peerBetEnabled = canSideBet && !!occupantUserId && occupantUserId !== user?.id;
 
-    if (isSeatHolder && turnTimerSeconds !== undefined && turnTimerSeconds >= 0) {
-      seatTimerSeconds = turnTimerSeconds;
-      seatTimerMaxSeconds = state.config?.turnTimeoutSeconds || 15;
-      seatTimerActive = true;
-    } else if (phaseTimerSeconds !== undefined && phaseTimerSeconds >= 0) {
-      if (phaseTimerKind === 'SIDE_BET' || state.phase === 'MAIN_MATCH_CONFIRMED') {
-        if (isActive) {
-          seatTimerSeconds = phaseTimerSeconds;
-          seatTimerMaxSeconds = state.config?.sideBetWindowSeconds || 10;
-          seatTimerActive = true;
-        }
-      } else if (phaseTimerKind === 'FINAL_LOCK' || state.phase === 'BETTING_LOCKED') {
-        if (isSeatHolder) {
-          seatTimerSeconds = phaseTimerSeconds;
-          seatTimerMaxSeconds = state.config?.finalLockSeconds || 5;
-          seatTimerActive = true;
-        }
-      } else if (phaseTimerKind === 'OPPONENT_MATCH' || state.phase === 'OPPONENT_MATCHING' || state.phase === 'MAIN_BET_PLACED') {
-        if (isSeatOpponent) {
-          seatTimerSeconds = phaseTimerSeconds;
-          seatTimerMaxSeconds = state.config?.opponentMatchWindowSeconds || 30;
-          seatTimerActive = true;
-        }
-      }
-    }
+    const peerBetPending = occupantUserId
+      ? (pendingPeerBetsByCounterparty.get(occupantUserId) ?? []).map((bet) => ({
+          label: bet.prediction === 'WIN' ? 'Zeet' : 'Haar',
+          amount: formatAmount(bet.amount),
+        }))
+      : undefined;
 
     slotViews[visualSlot] = {
       seatIndex: seat.seatIndex,
       visualSlot,
-      name: meta?.displayName ?? occupant.name,
+      name: displayName,
       avatarUrl: meta?.avatarUrl ?? occupant.avatarUrl,
       occupantUserId,
       isSelf,
@@ -339,13 +398,14 @@ export function DiceGamePage() {
       isDiceHolder: isSeatHolder,
       isYourTurn: isSeatHolder && canBet,
       isSpectator: !isActive,
-      clickable: seatClickable,
-      onClick: seatInteractive && occupantUserId
-        ? () => openSideBetForSeat(seat.seatIndex, occupantUserId, meta?.displayName ?? occupant.name)
+      peerBetEnabled,
+      onHaar: peerBetEnabled && occupantUserId
+        ? () => openPeerBet(occupantUserId, displayName, 'LOSS')
         : undefined,
-      timerSeconds: seatTimerSeconds,
-      timerMaxSeconds: seatTimerMaxSeconds,
-      timerActive: seatTimerActive,
+      onZeet: peerBetEnabled && occupantUserId
+        ? () => openPeerBet(occupantUserId, displayName, 'WIN')
+        : undefined,
+      peerBetPending,
     };
   }
 
@@ -353,15 +413,18 @@ export function DiceGamePage() {
     ? displayResult?.dice ?? null
     : displayResult?.dice ?? state.dice ?? null;
 
-  const seatViews: DiceSeatView[] = slotViews.map((view, visualSlot) =>
-    view ?? {
-      seatIndex: visualSlot,
+  const seatViews: DiceSeatView[] = slotViews.map((view, visualSlot) => {
+    if (view) return view;
+    const absSeat = absoluteSeatForVisualSlot(visualSlot, selfSeatIndex);
+    const label = diagramLabelForSeat(absSeat);
+    return {
+      seatIndex: absSeat,
       visualSlot,
-      name: '',
+      name: label,
+      avatarUrl: `https://api.dicebear.com/7.x/personas/svg?seed=ghori-seat-${absSeat}`,
       isEmpty: true,
-      isSpectator: true,
-    },
-  );
+    };
+  });
 
   const balanceDisplay = user?.id && playerMeta[user.id]?.balance
     ? formatAmount(parseFloat(playerMeta[user.id].balance!) || 0)
@@ -379,6 +442,39 @@ export function DiceGamePage() {
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
+      {isBettingPhase(state) && turnTimerSeconds !== undefined ? (
+        <div className="dice-game-viewport__global-timer">
+          <DiceCountdownTimer
+            seconds={turnTimerSeconds}
+            label="BETTING"
+            maxSeconds={state.config.turnTimeoutSeconds}
+            format="mmss"
+            size="table"
+          />
+        </div>
+      ) : null}
+      {finalLockTimerSeconds !== undefined ? (
+        <div className="dice-game-viewport__global-timer dice-game-viewport__global-timer--roll">
+          <DiceCountdownTimer
+            seconds={finalLockTimerSeconds}
+            label={finalLockLabel}
+            maxSeconds={state.config.finalLockSeconds ?? 5}
+            format="seconds"
+            size="table"
+          />
+        </div>
+      ) : null}
+      {isInterRoundPause(state) && phaseTimerSeconds !== undefined ? (
+        <div className="dice-game-viewport__global-timer dice-game-viewport__global-timer--pause">
+          <DiceCountdownTimer
+            seconds={phaseTimerSeconds}
+            label="NEXT ROUND"
+            maxSeconds={state.config.interRoundPauseSeconds ?? 5}
+            format="seconds"
+            size="table"
+          />
+        </div>
+      ) : null}
       {isMobileGameLayout ? (
         <DiceMobileHud
           balanceDisplay={balanceDisplay}
@@ -388,6 +484,23 @@ export function DiceGamePage() {
       ) : null}
       <div className={`dice-game-viewport__stage${isMobileGameLayout ? ' dice-game-viewport__stage--split' : ''}`}>
         <div className="dice-game-viewport__table-wrap">
+          <div className="dice-game-viewport__float-banners">
+            {handoffBanner ? (
+              <div className="dice-status-banner dice-status-banner--roll_ready">
+                {handoffBanner}
+              </div>
+            ) : null}
+            {rollPhaseBanner ? (
+              <div className="dice-status-banner dice-status-banner--roll_ready">
+                {rollPhaseBanner}
+              </div>
+            ) : null}
+            {statusBanner && !rollPhaseBanner ? (
+              <div className={`dice-status-banner dice-status-banner--${statusBanner.type.toLowerCase()}`}>
+                {statusBanner.message}
+              </div>
+            ) : null}
+          </div>
           {/* Both phone orientations share one canvas size, so rotating the
               device must not remount the scene and rebuild the GL context. */}
           <DiceTable
@@ -408,6 +521,8 @@ export function DiceGamePage() {
             trayVisible={canPlayerThrow}
             trayScreenPct={trayScreenPct}
             trayWorldPos={trayWorldPos}
+            handoffActive={isDiceHandoff}
+            handoffTargetSeat={rollerSeatIndex}
             portraitRotated={isMobileRotate}
             onPlayerThrow={(g) => { void handlePlayerThrow(g); }}
           />
@@ -469,6 +584,7 @@ export function DiceGamePage() {
               phase: state.phase,
               mainBet: !!state.mainBet,
               canSideBet,
+              pendingPeerBetCount: state.sideBets.filter((sb) => sb.status === 'PENDING').length,
               role: selfSeatIndex == null
                 ? 'unseated'
                 : isHolder
@@ -477,7 +593,23 @@ export function DiceGamePage() {
                     ? 'opponent'
                     : 'spectator',
               seated: selfSeatIndex != null,
-              clickableSeats: seatViews.filter((s) => s.clickable).map((s) => s.name),
+              clickableSeats: seatViews.filter((s) => s.peerBetEnabled).map((s) => s.name),
+              match: state.activeMatch
+                ? {
+                    holder: state.activeMatch.holderSeatIndex,
+                    opponent: state.activeMatch.opponentSeatIndex,
+                    holderLabel: diagramLabelForSeat(state.activeMatch.holderSeatIndex),
+                    opponentLabel: diagramLabelForSeat(state.activeMatch.opponentSeatIndex),
+                  }
+                : null,
+              seats: state.seats.map((s) => ({
+                seatIndex: s.seatIndex,
+                label: diagramLabelForSeat(s.seatIndex),
+                name: s.occupant?.name ?? 'empty',
+                type: s.occupant?.type ?? null,
+                botId: s.occupant?.type === 'BOT' ? s.occupant.botId : undefined,
+                userId: s.occupant?.userId,
+              })),
             }}
           />
         </div>
@@ -519,6 +651,7 @@ export function DiceGamePage() {
         open={!!sideBetTarget}
         onClose={() => setSideBetTarget(null)}
         targetName={sideBetTarget?.name ?? ''}
+        initialPrediction={sideBetTarget?.prediction ?? 'WIN'}
         currency={currency}
         minBet={minBet}
         maxBet={maxBet}
@@ -526,7 +659,25 @@ export function DiceGamePage() {
         onSubmit={async (prediction, amount) => {
           if (!sideBetTarget) return;
           await requestSideBet(sideBetTarget.userId, prediction, amount);
+          toast(`Peer bet placed with ${sideBetTarget.name}`, 'success');
           setSideBetTarget(null);
+        }}
+      />
+
+      <IncomingSideBetModal
+        open={!!pendingIncomingSideBet}
+        request={pendingIncomingSideBet}
+        currency={currency}
+        availableBalance={availableBalance}
+        formatAmount={formatAmount}
+        onClose={() => {}}
+        onAccept={async (amount) => {
+          if (!pendingIncomingSideBet) return;
+          await acceptSideBet(pendingIncomingSideBet.id, amount);
+        }}
+        onReject={async () => {
+          if (!pendingIncomingSideBet) return;
+          await rejectSideBet(pendingIncomingSideBet.id);
         }}
       />
 

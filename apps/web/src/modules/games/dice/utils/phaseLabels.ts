@@ -14,10 +14,6 @@ export function getDisplayPhase(state: DiceGameState, phaseTimerSeconds?: number
     case 'MAIN_BET_PLACED':
     case 'OPPONENT_MATCHING':
       return 'BETTING';
-    case 'MAIN_MATCH_CONFIRMED':
-    case 'SIDE_BETTING':
-      if (phaseTimerSeconds !== undefined && phaseTimerSeconds > 0) return 'ACCEPT_BETS';
-      return 'ACCEPT_BETS';
     case 'FINAL_LOCK':
       return 'ROLL_READY';
     case 'BETTING_LOCKED':
@@ -71,7 +67,14 @@ export function getOccupantDisplayName(
   playerMeta: Record<string, { displayName: string }>,
 ): string {
   if (!seat?.occupant) return '—';
-  const key = seat.occupant.type === 'USER' ? seat.occupant.userId : seat.occupant.botId;
+  const occ = seat.occupant;
+  if (occ.type === 'BOT' && occ.botId === 'tiger') return 'Shoot';
+  if (occ.userId === 'player_tiger' || occ.name === 'TIGER' || occ.name === 'Shoot') return 'Shoot';
+  if (occ.type === 'BOT' || (typeof occ.userId === 'string' && occ.userId.startsWith('player_filler_'))) {
+    const labels = ['B', 'G', 'E', 'D', 'Shoot', 'H', 'F', 'C'] as const;
+    return labels[seat.seatIndex] ?? occ.name;
+  }
+  const key = occ.type === 'USER' ? occ.userId : occ.botId;
   if (key && playerMeta[key]) return playerMeta[key].displayName;
-  return seat.occupant.name;
+  return occ.name;
 }

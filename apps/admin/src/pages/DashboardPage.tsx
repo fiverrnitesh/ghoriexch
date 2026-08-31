@@ -20,10 +20,10 @@ export function DashboardPage() {
     { label: 'Live Sessions', value: stats.activeSessions },
     { label: 'Total Bets', value: stats.totalBets },
     { label: 'Bets (24h)', value: stats.betsLast24h },
-    { label: 'Tx Volume (24h)', value: `$${stats.transactionVolume24h}` },
+    { label: 'Tx Volume (24h)', value: `₨ ${stats.transactionVolume24h}` },
     { label: 'Pending Withdrawals', value: stats.pendingWithdrawals },
     { label: 'Pending Deposits', value: stats.pendingDeposits },
-    { label: 'Platform Balance', value: `$${stats.totalPlatformBalance}` },
+    { label: 'Platform Balance', value: `₨ ${stats.totalPlatformBalance}` },
   ];
 
   return (
@@ -47,7 +47,7 @@ export function DashboardPage() {
               <span className={`badge ${a.type === 'audit' ? 'badge--gold' : 'badge--live'}`}>{a.action}</span>
               <span>{a.actor ?? '—'}</span>
               <span className="text-muted">{a.targetType ?? a.type}</span>
-              {a.amount && <span>${a.amount}</span>}
+              {a.amount && <span>₨ {a.amount}</span>}
               <time className="text-muted">{new Date(a.timestamp).toLocaleString()}</time>
             </div>
           ))}

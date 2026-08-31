@@ -22,7 +22,7 @@ const FLOOR_Y = -BODY_HEIGHT - 0.34;
 /**
  * Framing targets — table scaled up to fill the viewport (red box target).
  */
-const TARGET_NDC_WIDTH = 1.62;
+const TARGET_NDC_WIDTH = 1.68;
 const TARGET_CENTRE_NDC_Y = 0.04;
 /** Near rail NDC y — keeps near-side name plates comfortably visible. */
 const TARGET_NEAR_NDC_Y = -0.56;
@@ -39,7 +39,7 @@ const MOBILE_FRAMING = {
   nearNdcY: -0.4,
   aimX: 0,
   elevDeg: 38,
-  dist: 15.2,
+  dist: 15.6,
 };
 
 type CameraFraming = {
@@ -59,7 +59,7 @@ function pickFraming(mobilePortrait: boolean, mobileLandscape: boolean): CameraF
     nearNdcY: TARGET_NEAR_NDC_Y,
     aimX: 0,
     elevDeg: 38,
-    dist: 15.5,
+    dist: 15.8,
   };
 }
 
@@ -182,7 +182,7 @@ function SeatHitTracker({
         xPct: (v.x * 0.5 + 0.5) * 100,
         yPct: (-v.y * 0.5 + 0.5) * 100,
         seatIndex: seat.seatIndex,
-        far: slot === 2 || slot === 3 || slot === 4 || slot === 5,
+        far: pos.z < -0.05,
       };
     });
     const sig = nextHits
@@ -283,6 +283,8 @@ export function DiceTable({
   trayVisible = false,
   trayScreenPct = null,
   trayWorldPos = null,
+  handoffActive = false,
+  handoffTargetSeat = null,
   portraitRotated = false,
   onPlayerThrow,
 }: {
@@ -304,6 +306,8 @@ export function DiceTable({
   trayVisible?: boolean;
   trayScreenPct?: { x: number; y: number } | null;
   trayWorldPos?: [number, number, number] | null;
+  handoffActive?: boolean;
+  handoffTargetSeat?: number | null;
   portraitRotated?: boolean;
   onPlayerThrow?: (gesture: DiceThrowGesture) => void;
 }) {
@@ -368,16 +372,17 @@ export function DiceTable({
           throwRequest={throwRequest}
           trayVisible={trayVisible}
           trayWorldPos={trayWorldPos}
+          handoffActive={handoffActive}
+          handoffTargetSeat={handoffTargetSeat}
         />
         <SeatHitTracker seats={seats} onHits={onHits} seatOutwardBoost={seatOutwardBoost} />
         {!domSeatOverlay
           ? seats.map((seat) => {
-              if (seat.isEmpty) return null;
               const slot = seat.visualSlot ?? 0;
               const pos = getSeatWorldPosition(slot, !!seat.isSelf, { outwardBoost: seatOutwardBoost });
               return (
                 <DiceSeatHtml
-                  key={seat.seatIndex}
+                  key={`slot-${slot}`}
                   position={[pos.x, pos.y, pos.z]}
                   scale={pos.scale}
                   seat={seat}
@@ -389,7 +394,7 @@ export function DiceTable({
       {domSeatOverlay
         ? hits.map((hit) => {
             const seat = seats.find((s) => s.seatIndex === hit.seatIndex);
-            if (!seat || seat.isEmpty) return null;
+            if (!seat) return null;
             const pushed = pushSeatPct(hit.xPct, hit.yPct, 2);
             return (
               <div

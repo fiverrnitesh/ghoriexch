@@ -12,7 +12,7 @@
 .ds-game-card {
   position: relative;
   aspect-ratio: 1 / 1;
-  min-height: 240px;
+  min-height: 0;
   border-radius: var(--ds-radius-lg);
   overflow: hidden;
   display: flex;
@@ -134,7 +134,7 @@
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: rgba(245, 200, 66, 0.75);
+  color: rgba(255, 198, 41, 0.75);
   text-transform: uppercase;
 }
 
@@ -147,5 +147,34 @@
 .ds-game-card--default { background: linear-gradient(160deg, var(--ds-red-dark), var(--ds-surface) 100%); }
 
 @media (max-width: 640px) {
-  .ds-game-card { min-height: 160px; }
+  .ds-game-card {
+    border-radius: var(--ds-radius-md);
+  }
+
+  .ds-game-card__visual {
+    padding-bottom: 1.6rem;
+  }
+
+  .ds-game-card__emoji {
+    font-size: clamp(3rem, 12vw, 4.5rem);
+  }
+
+  .ds-game-card__svg-icon {
+    width: clamp(65px, 20vw, 95px);
+    height: clamp(65px, 20vw, 95px);
+  }
+
+  .ds-game-card__footer {
+    padding: 1.5rem 0.5rem 0.65rem;
+  }
+
+  .ds-game-card__title {
+    font-size: clamp(0.75rem, 3.2vw, 0.9rem);
+    letter-spacing: 0.05em;
+  }
+
+  .ds-game-card__badge {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.62rem;
+  }
 }

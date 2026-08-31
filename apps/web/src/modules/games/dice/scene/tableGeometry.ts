@@ -1,13 +1,12 @@
 import * as THREE from 'three';
 
 /**
- * Reference table: a wide rounded rectangle (large corner radius, long straight
- * top/bottom runs, slightly flattened ends) — not a stadium and not an ellipse.
- * The padded rail is wider front/back than at the ends, matching the reference.
+ * Reference table: a horizontally elongated ellipse (wider than tall — not a
+ * circle, not a stadium / rounded rectangle). The padded rail is wider
+ * front/back than at the ends, matching the existing felt + gold materials.
  */
 export const TABLE_RX = 5.6;
 export const TABLE_RZ = 2.45;
-export const TABLE_CORNER = 1.92;
 
 // Sleeker, narrower padded gold rail border
 export const RAIL_W_X = 0.32;
@@ -15,7 +14,6 @@ export const RAIL_W_Z = 0.42;
 
 export const FELT_RX = TABLE_RX - RAIL_W_X;
 export const FELT_RZ = TABLE_RZ - RAIL_W_Z;
-export const FELT_CORNER = 1.45;
 
 export const BODY_HEIGHT = 0.4;
 export const RAIL_HEIGHT = 0.29;
@@ -25,61 +23,39 @@ export const SEAT_Y = 0.46;
 /** Screen box aspect of the table in the reference (880 x 256 px). */
 export const REFERENCE_TABLE_ASPECT = 3.44;
 
-export function roundedRectShape(rx: number, rz: number, corner: number) {
-  const r = Math.min(corner, rx - 0.001, rz - 0.001);
+export function ellipseShape(rx: number, rz: number) {
   const shape = new THREE.Shape();
-  shape.moveTo(-rx + r, rz);
-  shape.lineTo(rx - r, rz);
-  shape.absarc(rx - r, rz - r, r, Math.PI / 2, 0, true);
-  shape.lineTo(rx, -rz + r);
-  shape.absarc(rx - r, -rz + r, r, 0, -Math.PI / 2, true);
-  shape.lineTo(-rx + r, -rz);
-  shape.absarc(-rx + r, -rz + r, r, -Math.PI / 2, Math.PI, true);
-  shape.lineTo(-rx, rz - r);
-  shape.absarc(-rx + r, rz - r, r, Math.PI, Math.PI / 2, true);
+  shape.absellipse(0, 0, rx, rz, 0, Math.PI * 2, false, 0);
   return shape;
 }
 
-function roundedRectHole(rx: number, rz: number, corner: number) {
-  const r = Math.min(corner, rx - 0.001, rz - 0.001);
+function ellipseHole(rx: number, rz: number) {
   const path = new THREE.Path();
-  path.moveTo(rx - r, rz);
-  path.lineTo(-rx + r, rz);
-  path.absarc(-rx + r, rz - r, r, Math.PI / 2, Math.PI, false);
-  path.lineTo(-rx, -rz + r);
-  path.absarc(-rx + r, -rz + r, r, Math.PI, Math.PI * 1.5, false);
-  path.lineTo(rx - r, -rz);
-  path.absarc(rx - r, -rz + r, r, -Math.PI / 2, 0, false);
-  path.lineTo(rx, rz - r);
-  path.absarc(rx - r, rz - r, r, 0, Math.PI / 2, false);
+  path.absellipse(0, 0, rx, rz, 0, Math.PI * 2, true, 0);
   return path;
 }
 
 export function ringShape(
   outerRx: number,
   outerRz: number,
-  outerCorner: number,
   innerRx: number,
   innerRz: number,
-  innerCorner: number,
 ) {
-  const shape = roundedRectShape(outerRx, outerRz, outerCorner);
-  shape.holes.push(roundedRectHole(innerRx, innerRz, innerCorner));
+  const shape = ellipseShape(outerRx, outerRz);
+  shape.holes.push(ellipseHole(innerRx, innerRz));
   return shape;
 }
 
 export function railRingShape() {
-  return ringShape(TABLE_RX, TABLE_RZ, TABLE_CORNER, FELT_RX, FELT_RZ, FELT_CORNER);
+  return ringShape(TABLE_RX, TABLE_RZ, FELT_RX, FELT_RZ);
 }
 
 export function feltLipShape() {
   return ringShape(
     FELT_RX + 0.055,
     FELT_RZ + 0.055,
-    FELT_CORNER + 0.05,
     FELT_RX + 0.004,
     FELT_RZ + 0.004,
-    FELT_CORNER,
   );
 }
 
@@ -97,50 +73,72 @@ export function extrudeShape(shape: THREE.Shape, depth: number, bevel = 0.02, cu
   return geo;
 }
 
-/** Ray-cast from the table centre to the rounded-rect contour. 0° = +X, 90° = +Z (near). */
-export function pointOnTableRim(rx: number, rz: number, corner: number, angleDeg: number) {
+/** Point on the ellipse rim. 0° = +X (right), 90° = +Z (near / bottom). */
+export function pointOnTableRim(rx: number, rz: number, angleDeg: number) {
   const a = (angleDeg * Math.PI) / 180;
-  const c = Math.cos(a);
-  const s = Math.sin(a);
-  const r = Math.min(corner, rx, rz);
-  const hx = rx - r;
-  const hz = rz - r;
+  return { x: rx * Math.cos(a), z: rz * Math.sin(a) };
+}
 
-  if (Math.abs(s) > 1e-6) {
-    const edgeZ = s > 0 ? rz : -rz;
-    const t = edgeZ / s;
-    const x = t * c;
-    if (t > 0 && Math.abs(x) <= hx + 1e-6) return { x, z: edgeZ };
+/**
+ * Parametric angles (degrees) for `count` points equally spaced by arc length
+ * around the ellipse, starting at `startDeg` and walking in +θ (0°=+X, 90°=+Z).
+ */
+export function ellipseEqualArcAngles(
+  rx: number,
+  rz: number,
+  count: number,
+  startDeg: number,
+): number[] {
+  const steps = 4096;
+  const dθ = (Math.PI * 2) / steps;
+  const seg = new Float64Array(steps);
+  let circumference = 0;
+  for (let i = 0; i < steps; i++) {
+    const θ = i * dθ;
+    // ds/dθ = sqrt(rx² sin²θ + rz² cos²θ)
+    seg[i] = Math.hypot(rx * Math.sin(θ), rz * Math.cos(θ)) * dθ;
+    circumference += seg[i];
   }
 
-  if (Math.abs(c) > 1e-6) {
-    const edgeX = c > 0 ? rx : -rx;
-    const t = edgeX / c;
-    const z = t * s;
-    if (t > 0 && Math.abs(z) <= hz + 1e-6) return { x: edgeX, z };
-  }
+  const spacing = circumference / count;
+  const startRad = ((startDeg * Math.PI) / 180) % (Math.PI * 2);
+  const startIndex = Math.round(((startRad + Math.PI * 2) % (Math.PI * 2)) / dθ) % steps;
 
-  const cx = c >= 0 ? hx : -hx;
-  const cz = s >= 0 ? hz : -hz;
-  const b = -2 * (c * cx + s * cz);
-  const cc = cx * cx + cz * cz - r * r;
-  const disc = Math.max(0, b * b - 4 * cc);
-  const t = (-b + Math.sqrt(disc)) / 2;
-  return { x: t * c, z: t * s };
+  const angles: number[] = new Array(count);
+  let i = startIndex;
+  let acc = 0;
+  angles[0] = startDeg;
+  for (let k = 1; k < count; k++) {
+    const target = k * spacing;
+    while (acc < target) {
+      acc += seg[i]!;
+      i = (i + 1) % steps;
+    }
+    angles[k] = (i * dθ * 180) / Math.PI;
+  }
+  return angles;
+}
+
+/** Unit outward normal of the ellipse at `angleDeg` (gradient of x²/rx² + z²/rz²). */
+export function ellipseOutwardNormal(rx: number, rz: number, angleDeg: number) {
+  const a = (angleDeg * Math.PI) / 180;
+  const nx = Math.cos(a) / Math.max(rx, 1e-6);
+  const nz = Math.sin(a) / Math.max(rz, 1e-6);
+  const len = Math.hypot(nx, nz) || 1;
+  return { x: nx / len, z: nz / len };
 }
 
 class RimCurve extends THREE.Curve<THREE.Vector3> {
   constructor(
     private rx: number,
     private rz: number,
-    private corner: number,
     private y: number,
   ) {
     super();
   }
 
   override getPoint(t: number, target = new THREE.Vector3()) {
-    const p = pointOnTableRim(this.rx, this.rz, this.corner, 90 - t * 360);
+    const p = pointOnTableRim(this.rx, this.rz, 90 - t * 360);
     return target.set(p.x, this.y, p.z);
   }
 }
@@ -148,12 +146,11 @@ class RimCurve extends THREE.Curve<THREE.Vector3> {
 export function createRimTube(
   rx: number,
   rz: number,
-  corner: number,
   y: number,
   radius: number,
   segments = 320,
 ) {
-  const curve = new RimCurve(rx, rz, corner, y);
+  const curve = new RimCurve(rx, rz, y);
   curve.arcLengthDivisions = 320;
   const geo = new THREE.TubeGeometry(curve, segments, radius, 14, true);
   geo.computeVertexNormals();
@@ -266,8 +263,8 @@ export function createRailCanvas() {
     const base = ctx.createLinearGradient(0, 0, 0, h);
     base.addColorStop(0, '#b8860b');
     base.addColorStop(0.25, '#d4a017');
-    base.addColorStop(0.5, '#ffd700');
-    base.addColorStop(0.75, '#c9a227');
+    base.addColorStop(0.5, '#FFC629');
+    base.addColorStop(0.75, '#D9A01B');
     base.addColorStop(1, '#a67c00');
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, w, h);

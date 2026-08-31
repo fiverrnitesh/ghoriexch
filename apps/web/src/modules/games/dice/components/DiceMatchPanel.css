@@ -100,7 +100,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #f5d76e, #c9a227);
+  background: linear-gradient(90deg, #FFC629, #D9A01B);
 }
 
 .dice-match-panel__desync {
@@ -160,7 +160,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #1a1020;
-  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
   border-radius: 4px;
   padding: 0.08rem 0.28rem;
 }
@@ -254,7 +254,7 @@
 .dice-match-panel__accept {
   border: none;
   color: #1a1020;
-  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
 }
 
 .dice-match-panel__reject {
@@ -371,7 +371,7 @@
 
 .dice-match-rail__btn--gold {
   color: #1a1020;
-  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
   border-color: rgba(253, 230, 138, 0.7);
 }
 

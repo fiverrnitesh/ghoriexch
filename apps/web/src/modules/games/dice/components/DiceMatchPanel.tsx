@@ -30,7 +30,7 @@ function playerName(
 
 function phaseLabel(state: DiceGameState): string {
   if (isBettingPhase(state)) return 'BETTING';
-  if (isSideBettingPhase(state)) return 'SIDE BETS';
+  if (isSideBettingPhase(state)) return 'PEER BETS';
   if (isRollReadyPhase(state)) return 'ROLL';
   if (state.phase === 'DICE_ROLLING') return 'ROLLING';
   if (state.phase === 'RESULT' || state.phase === 'SETTLEMENT') return 'RESULT';
@@ -241,7 +241,7 @@ export function DiceMatchPanel({
         ) : null}
 
         <section className="dice-match-panel__section">
-          <h3>Side bets</h3>
+          <h3>Peer bets (Haar / Zeet)</h3>
           {state.sideBets.length === 0 ? (
             <p className="dice-match-panel__empty">None this round</p>
           ) : (

@@ -6,7 +6,7 @@ import { assignSeat, createEmptySeats } from './dice.logic.js';
 import { startTurnTimer, isTurnExpired } from './dice.turn-timer.js';
 import { startFinalLockWindow } from './dice.phase-timer.js';
 import type { DiceGameState } from './dice.types.js';
-import { lockMainBet, placeAndConfirmMainBet } from './dice.test-helpers.js';
+import { lockMainBet, placeAndConfirmMainBet, advanceInterRoundPause, advanceDiceHandoff, advanceFinalLock } from './dice.test-helpers.js';
 
 function loadBettingTable(engine: DiceGameEngine, sessionId: string, playerCount: number, holderSeat = 0, opponentSeat = 1) {
   let seats = createEmptySeats(6);
@@ -24,6 +24,8 @@ function loadBettingTable(engine: DiceGameEngine, sessionId: string, playerCount
     acceptedParticipantIds: Array.from({ length: playerCount }, (_, i) => `u${i}`),
     opponentMatchWindowEndsAt: null,
     sideBetWindowEndsAt: null,
+    interRoundPauseEndsAt: null,
+    diceHandoffEndsAt: null,
     finalLockEndsAt: null,
     phaseTimerId: null,
     mainBet: null,
@@ -44,8 +46,12 @@ function loadBettingTable(engine: DiceGameEngine, sessionId: string, playerCount
   return { state, now };
 }
 
+function bettingDeadlinePlus(state: DiceGameState, ms = 1) {
+  return Date.parse(state.turnDeadlineAt!) + ms;
+}
+
 describe('DiceGameEngine — turn timeout', () => {
-  it('2. player acts before 15 seconds — bet and roll succeed', async () => {
+  it('2. player acts before betting window ends — bet and roll succeed', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'before-deadline';
     loadBettingTable(engine, sessionId, 2);
@@ -63,37 +69,41 @@ describe('DiceGameEngine — turn timeout', () => {
     assert.equal(roll.events.some((e) => e.type === 'dice:result'), true);
   });
 
-  it('4. timeout in BETTING forfeits holder — next player receives turn', async () => {
+  it('4. timeout in BETTING auto-places main bet and opens FINAL_LOCK', async () => {
     const engine = new DiceGameEngine();
-    const sessionId = 'forfeit-bet';
-    const { now } = loadBettingTable(engine, sessionId, 2);
+    const sessionId = 'auto-bet-lock';
+    loadBettingTable(engine, sessionId, 2);
     const st = engine.getInternalState(sessionId)!;
     const timerId = st.turnTimerId!;
+    const expiredAt = bettingDeadlinePlus(st);
 
     const result = await engine.processAction({
       sessionId,
       userId: 'system',
       action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: now + 16000 },
+      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: expiredAt },
     });
 
-    assert.ok(result.events.some((e) => e.type === 'dice:turn_timeout'));
+    assert.ok(result.events.some((e) => e.type === 'dice:main_bet_placed'));
     const after = engine.getInternalState(sessionId)!;
-    assert.equal(after.phase, 'BETTING');
-    assert.equal(after.activeMatch!.holderSeatIndex, 1);
-    assert.equal(after.mainBet, null);
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    assert.equal(after.mainBet?.amount, after.config.minBet);
+    assert.equal(after.mainBet?.choice, 'ODD');
+    assert.equal(after.mainBet?.locked, true);
   });
 
   it('5. late PLACE_MAIN_BET rejected after deadline', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'late-bet';
-    const { now } = loadBettingTable(engine, sessionId, 2);
+    loadBettingTable(engine, sessionId, 2);
+    const st = engine.getInternalState(sessionId)!;
+    const late = bettingDeadlinePlus(st);
     await assert.rejects(
       () => engine.processAction({
         sessionId,
         userId: 'u0',
         action: DICE_ACTIONS.PLACE_MAIN_BET,
-        payload: { amount: 100, choice: 'EVEN', nowMs: now + 16000 },
+        payload: { amount: 100, choice: 'EVEN', nowMs: late },
       }),
       /Turn deadline expired/,
     );
@@ -118,14 +128,16 @@ describe('DiceGameEngine — turn timeout', () => {
   it('9. action vs timeout race — only timeout wins when expired', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'race';
-    const { now } = loadBettingTable(engine, sessionId, 2);
-    const timerId = engine.getInternalState(sessionId)!.turnTimerId!;
+    loadBettingTable(engine, sessionId, 2);
+    const st0 = engine.getInternalState(sessionId)!;
+    const timerId = st0.turnTimerId!;
+    const expiredAt = bettingDeadlinePlus(st0);
 
     const timeout = await engine.processAction({
       sessionId,
       userId: 'system',
       action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: now + 16000 },
+      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: expiredAt },
     });
     assert.ok(timeout.events.length > 0);
 
@@ -134,69 +146,96 @@ describe('DiceGameEngine — turn timeout', () => {
         sessionId,
         userId: 'u0',
         action: DICE_ACTIONS.PLACE_MAIN_BET,
-        payload: { amount: 100, choice: 'ODD', nowMs: now + 16000 },
+        payload: { amount: 100, choice: 'ODD', nowMs: expiredAt },
       }),
-      /Only active dice player can place main bet|Turn deadline expired/,
+      /Only active dice player can place main bet|Turn deadline expired|Betting not open/,
     );
   });
 
   it('9b. stale timeout worker ignored via turnTimerId', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'stale-timer';
-    const { now } = loadBettingTable(engine, sessionId, 2);
-    const stale = engine.getInternalState(sessionId)!.turnTimerId!;
+    loadBettingTable(engine, sessionId, 2);
+    const st0 = engine.getInternalState(sessionId)!;
+    const stale = st0.turnTimerId!;
+    const expiredAt = bettingDeadlinePlus(st0);
 
     await engine.processAction({
       sessionId,
       userId: 'system',
       action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: stale, systemTimeout: true, nowMs: now + 16000 },
+      payload: { turnTimerId: stale, systemTimeout: true, nowMs: expiredAt },
     });
     const after = engine.getInternalState(sessionId)!;
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    assert.equal(after.turnTimerId, null);
     const result = await engine.processAction({
       sessionId,
       userId: 'system',
       action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: stale, systemTimeout: true, nowMs: now + 32000 },
+      payload: { turnTimerId: stale, systemTimeout: true, nowMs: expiredAt + 30_000 },
     });
     assert.equal(result.events.length, 0);
-    assert.notEqual(after.turnTimerId, stale);
   });
 
-  it('10. multiple consecutive timeouts advance game', async () => {
+  it('10. multiple consecutive betting timeouts advance through FINAL_LOCK', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'multi-timeout';
     loadBettingTable(engine, sessionId, 4, 0, 3);
+    const forceWin = () => {
+      const st = engine.getInternalState(sessionId)!;
+      st.forcedDice = [3, 3];
+      engine.loadState(sessionId, st);
+    };
 
     for (let i = 0; i < 3; i++) {
       const st = engine.getInternalState(sessionId)!;
-      const timerId = st.turnTimerId!;
-      const nowMs = Date.parse(st.turnDeadlineAt!) + 1;
+      if (st.phase === 'INTER_ROUND_PAUSE') {
+        await advanceInterRoundPause(engine, sessionId);
+      }
+      if (st.phase === 'DICE_HANDOFF') await advanceDiceHandoff(engine, sessionId);
+      if (st.phase === 'FINAL_LOCK') {
+        forceWin();
+        await advanceFinalLock(engine, sessionId);
+        if (engine.getInternalState(sessionId)!.phase === 'INTER_ROUND_PAUSE') {
+          await advanceInterRoundPause(engine, sessionId);
+        }
+      }
+      const current = engine.getInternalState(sessionId)!;
+      const timerId = current.turnTimerId!;
+      const nowMs = Date.parse(current.turnDeadlineAt!) + 1;
       await engine.processAction({
         sessionId,
         userId: 'system',
         action: DICE_ACTIONS.TURN_TIMEOUT,
         payload: { turnTimerId: timerId, systemTimeout: true, nowMs },
       });
+      forceWin();
+      await advanceFinalLock(engine, sessionId);
+      if (engine.getInternalState(sessionId)!.phase === 'INTER_ROUND_PAUSE') {
+        await advanceInterRoundPause(engine, sessionId);
+      }
     }
     const after = engine.getInternalState(sessionId)!;
     assert.equal(after.phase, 'BETTING');
     assert.ok(after.activeMatch);
   });
 
-  it('15. timeout does not create settlement when no bet placed', async () => {
+  it('15. timeout auto-bet opens FINAL_LOCK without settlement yet', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'no-settle';
-    const { now } = loadBettingTable(engine, sessionId, 2);
-    const timerId = engine.getInternalState(sessionId)!.turnTimerId!;
+    loadBettingTable(engine, sessionId, 2);
+    const st = engine.getInternalState(sessionId)!;
+    const timerId = st.turnTimerId!;
 
     const result = await engine.processAction({
       sessionId,
       userId: 'system',
       action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: now + 16000 },
+      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: bettingDeadlinePlus(st) },
     });
     assert.equal(result.events.some((e) => e.type === 'dice:settlement'), false);
+    assert.equal(engine.getInternalState(sessionId)!.phase, 'DICE_HANDOFF');
   });
 
   it('timeout with locked bet auto-rolls after final lock expires', async () => {
@@ -219,20 +258,22 @@ describe('DiceGameEngine — turn timeout', () => {
     assert.ok(result.events.some((e) => e.type === 'dice:result'));
   });
 
-  it('11. 2-player table — timeout rotates holder to opponent', async () => {
+  it('11. 2-player table — timeout opens FINAL_LOCK for auto roll', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'two-player-rotate';
-    const { now } = loadBettingTable(engine, sessionId, 2);
-    const timerId = engine.getInternalState(sessionId)!.turnTimerId!;
+    loadBettingTable(engine, sessionId, 2);
+    const st = engine.getInternalState(sessionId)!;
+    const timerId = st.turnTimerId!;
 
     await engine.processAction({
       sessionId,
       userId: 'system',
       action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: now + 16000 },
+      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: bettingDeadlinePlus(st) },
     });
     const after = engine.getInternalState(sessionId)!;
-    assert.equal(after.activeMatch!.holderSeatIndex, 1);
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    assert.ok(after.mainBet?.locked);
   });
 
   it('FORCE_DICE still works before deadline', async () => {
@@ -260,7 +301,7 @@ describe('DiceGameEngine — turn timeout', () => {
 });
 
 describe('DiceGameEngine — table size timeout rotation', () => {
-  it('12. 4-player anti-clockwise rotation on timeout', async () => {
+  it('12. 4-player timeout opens FINAL_LOCK for auto roll', async () => {
     const engine = new DiceGameEngine();
     const sessionId = 'four-timeout';
     loadBettingTable(engine, sessionId, 4, 0, 3);
@@ -275,7 +316,9 @@ describe('DiceGameEngine — table size timeout rotation', () => {
         nowMs: Date.parse(st.turnDeadlineAt!) + 1,
       },
     });
-    assert.equal(engine.getInternalState(sessionId)!.activeMatch!.holderSeatIndex, 3);
+    const after = engine.getInternalState(sessionId)!;
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    assert.ok(after.mainBet?.locked);
   });
 
   it('13. 6-player timeout keeps valid occupied seats', async () => {
@@ -302,9 +345,10 @@ describe('turn timer — expiry helper', () => {
   it('isTurnExpired respects deadline', () => {
     const engine = new DiceGameEngine();
     const sessionId = 'exp-helper';
-    const { now } = loadBettingTable(engine, sessionId, 2);
+    loadBettingTable(engine, sessionId, 2);
     const st = engine.getInternalState(sessionId)!;
-    assert.equal(isTurnExpired(st, now + 14000), false);
-    assert.equal(isTurnExpired(st, now + 16000), true);
+    const deadline = Date.parse(st.turnDeadlineAt!);
+    assert.equal(isTurnExpired(st, deadline - 1), false);
+    assert.equal(isTurnExpired(st, deadline), true);
   });
 });

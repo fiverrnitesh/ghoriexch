@@ -9,10 +9,11 @@ export function SideBetModal({
   open,
   onClose,
   targetName,
-  currency = 'USD',
+  currency = 'PKR',
   minBet = 10,
   maxBet = 10000,
   formatAmount,
+  initialPrediction = 'WIN',
   onSubmit,
 }: {
   open: boolean;
@@ -22,9 +23,10 @@ export function SideBetModal({
   minBet?: number;
   maxBet?: number;
   formatAmount?: (n: number) => string;
+  initialPrediction?: 'WIN' | 'LOSS';
   onSubmit: (prediction: 'WIN' | 'LOSS', amount: number) => void | Promise<void>;
 }) {
-  const [prediction, setPrediction] = useState<'WIN' | 'LOSS'>('WIN');
+  const [prediction, setPrediction] = useState<'WIN' | 'LOSS'>(initialPrediction ?? 'WIN');
   const [amount, setAmount] = useState<number>(0);
   const [customAmount, setCustomAmount] = useState('');
   const [pending, setPending] = useState(false);
@@ -33,13 +35,13 @@ export function SideBetModal({
 
   useEffect(() => {
     if (open) {
-      setPrediction('WIN');
+      setPrediction(initialPrediction);
       setAmount(0);
       setCustomAmount('');
       setError(null);
       setPending(false);
     }
-  }, [open, targetName]);
+  }, [open, targetName, initialPrediction]);
 
   const handleAddAmount = (increment: number) => {
     setAmount((prev) => {
@@ -95,26 +97,26 @@ export function SideBetModal({
           ✕
         </button>
         <div className="dice-sidebet-modal__header">
-          <span className="dice-sidebet-modal__eyebrow">Spectator Side Bet</span>
-          <h2>BACK {targetName.toUpperCase()}</h2>
+          <span className="dice-sidebet-modal__eyebrow">Peer bet with</span>
+          <h2>{targetName.toUpperCase()}</h2>
         </div>
 
         <div className="dice-sidebet-modal__predictions">
-          <span className="dice-sidebet-modal__label">They will</span>
+          <span className="dice-sidebet-modal__label">Holder will</span>
           <div className="dice-sidebet-modal__pred-row">
             <button
               type="button"
               className={`dice-sidebet-modal__pred ${prediction === 'WIN' ? 'dice-sidebet-modal__pred--active' : ''}`}
               onClick={() => setPrediction('WIN')}
             >
-              WIN
+              Zeet (WIN)
             </button>
             <button
               type="button"
               className={`dice-sidebet-modal__pred ${prediction === 'LOSS' ? 'dice-sidebet-modal__pred--active' : ''}`}
               onClick={() => setPrediction('LOSS')}
             >
-              PAO / LOSS
+              Haar (LOSS)
             </button>
           </div>
         </div>
@@ -183,7 +185,7 @@ export function IncomingSideBetModal({
   onAccept,
   onReject,
   onClose,
-  currency = 'USD',
+  currency = 'PKR',
   availableBalance,
   formatAmount,
 }: {
@@ -247,18 +249,18 @@ export function IncomingSideBetModal({
     <Modal open={open} onClose={onClose} title="" size="sm">
       <div className="dice-sidebet-modal dice-sidebet-modal--incoming">
         <div className="dice-sidebet-modal__header">
-          <span className="dice-sidebet-modal__eyebrow">Side Bet Request</span>
+          <span className="dice-sidebet-modal__eyebrow">Peer bet request</span>
           <h2>ACCEPT OR REJECT</h2>
         </div>
         <p className="dice-sidebet-modal__copy">
-          <strong>{request.backerName}</strong> bets {fmt(request.amount)} you will{' '}
-          <strong>{request.prediction === 'LOSS' ? 'PAO / LOSS' : 'WIN'}</strong>
+          <strong>{request.backerName}</strong> bets {fmt(request.amount)} holder will{' '}
+          <strong>{request.prediction === 'LOSS' ? 'LOSE (Haar)' : 'WIN (Zeet)'}</strong>
         </p>
 
         <label className="dice-sidebet-modal__amount">
           <span className="dice-sidebet-modal__label">Accept amount (partial OK)</span>
           <div className="dice-sidebet-modal__amount-input">
-            <span>{currency === 'INR' ? '₹' : '$'}</span>
+            <span>{currency === 'PKR' ? '₨' : currency === 'INR' ? '₹' : '$'}</span>
             <input
               type="number"
               min={1}
@@ -269,7 +271,7 @@ export function IncomingSideBetModal({
           </div>
           {partial ? (
             <p className="dice-sidebet-modal__hint">
-              Available {fmt(available)} · Shoot covers {fmt(request.amount - finalAccept)}
+              Available {fmt(available)} · remainder auto-covered
             </p>
           ) : null}
         </label>

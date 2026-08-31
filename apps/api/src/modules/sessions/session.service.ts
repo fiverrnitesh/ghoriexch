@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/client.js';
 import { NotFoundError, ValidationError } from '../../lib/errors.js';
 import { generateServerSeedHash, decimalToString } from '../../lib/utils.js';
-import { gameRegistry, sanitizePublicDiceState, type DiceGameState } from '@games/game-engine';
+import { DICE_MAX_REAL_PLAYERS, gameRegistry, sanitizePublicDiceState, type DiceGameState } from '@games/game-engine';
 import { emitSessionGameEvent } from '../../realtime/socket.server.js';
 
 export class SessionService {
@@ -77,7 +77,10 @@ export class SessionService {
       return this.formatSession(sessionId);
     }
 
-    if (session.players.length >= session.game.maxPlayers) {
+    const playerCap = session.game.slug === 'dice'
+      ? Math.min(session.game.maxPlayers, DICE_MAX_REAL_PLAYERS)
+      : session.game.maxPlayers;
+    if (session.players.length >= playerCap) {
       throw new ValidationError('Session is full');
     }
 
@@ -92,7 +95,14 @@ export class SessionService {
 
     const plugin = gameRegistry.getPlugin(session.game.slug);
     if (plugin) {
-      await plugin.definition.joinSession({ sessionId, userId, seatIndex });
+      const { playerState } = await plugin.definition.joinSession({ sessionId, userId, seatIndex });
+      const engineSeat = typeof playerState.seatIndex === 'number' ? playerState.seatIndex : undefined;
+      if (engineSeat !== undefined && engineSeat !== seatIndex) {
+        await prisma.gamePlayer.update({
+          where: { sessionId_userId: { sessionId, userId } },
+          data: { seatIndex: engineSeat },
+        });
+      }
       const newState = await plugin.definition.getState(sessionId);
       await prisma.gameSession.update({
         where: { id: sessionId },

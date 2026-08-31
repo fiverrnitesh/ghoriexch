@@ -242,9 +242,9 @@ export function UsersPage() {
             key: 'wallet',
             label: 'Available Coins',
             render: (r) => {
-              if (r.isUnlimited) return <strong style={{ color: '#f5c842' }}>∞ Unlimited</strong>;
+              if (r.isUnlimited) return <strong style={{ color: '#FFC629' }}>∞ Unlimited</strong>;
               const w = r.wallet as { availableBalance: string } | null;
-              return <strong>{w ? `$${Number(w.availableBalance).toLocaleString()}` : '$0'}</strong>;
+              return <strong>{w ? `₨ ${Number(w.availableBalance).toLocaleString()}` : '₨ 0'}</strong>;
             },
           },
           {
@@ -296,7 +296,7 @@ export function UsersPage() {
       {createOpen && (
         <div className="login-page" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="panel login-card" style={{ maxWidth: '480px', width: '100%' }}>
-            <h2 style={{ color: '#f5c842', marginBottom: '1rem' }}>Create Hierarchy User</h2>
+            <h2 style={{ color: '#FFC629', marginBottom: '1rem' }}>Create Hierarchy User</h2>
             {createError && <div className="login-error">{createError}</div>}
             {createSuccess && <div style={{ color: '#4ade80', marginBottom: '0.75rem', fontSize: '0.9rem' }}>{createSuccess}</div>}
             <form className="login-form" onSubmit={handleCreateDownline}>
@@ -344,7 +344,7 @@ export function UsersPage() {
       {transferTarget && (
         <div className="login-page" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="panel login-card" style={{ maxWidth: '420px', width: '100%' }}>
-            <h2 style={{ color: '#f5c842', marginBottom: '0.5rem' }}>
+            <h2 style={{ color: '#FFC629', marginBottom: '0.5rem' }}>
               {transferDirection === 'deposit' ? 'Give Coins' : 'Recall Coins'}
             </h2>
             <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>

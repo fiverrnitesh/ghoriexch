@@ -9,6 +9,7 @@ import {
   getPhaseRemainingMs,
   getTurnRemainingMs,
   hasTigerBot,
+  DICE_MAX_REAL_PLAYERS,
   type DiceGameState,
 } from '@games/game-engine';
 
@@ -103,7 +104,7 @@ export class RoomService {
       host: room.host,
       tigerPresent: dice?.tigerPresent ?? false,
       realPlayerCount: dice?.realPlayerCount ?? activeSession?.players.length ?? 0,
-      maxRealPlayers: 6,
+      maxRealPlayers: DICE_MAX_REAL_PLAYERS,
       dice,
       activeSession: activeSession
         ? {
@@ -208,7 +209,7 @@ export class RoomService {
           status: room.status,
           createdAt: room.createdAt.toISOString(),
           realPlayerCount: dice.realPlayerCount,
-          maxRealPlayers: 6,
+          maxRealPlayers: DICE_MAX_REAL_PLAYERS,
           tigerPresent: dice.tigerPresent,
           seatedPlayers: dice.seatedPlayers,
           activePlayer: dice.activePlayer,

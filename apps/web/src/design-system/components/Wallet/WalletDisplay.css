@@ -71,7 +71,7 @@ button.ds-balance-badge:hover {
 }
 
 .ds-balance-badge--gold {
-  background: linear-gradient(135deg, rgba(245,200,66,0.15), rgba(139,0,32,0.12));
+  background: linear-gradient(135deg, rgba(255,198,41,0.15), rgba(139,0,32,0.12));
   border-color: var(--ds-border-gold);
   color: var(--ds-gold);
 }

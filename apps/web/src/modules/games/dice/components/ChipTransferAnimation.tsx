@@ -19,7 +19,7 @@ export function ChipTransferAnimation({
   fromPct,
   toPct,
   amount,
-  currency = 'USD',
+  currency = 'PKR',
   roundId,
 }: ChipTransferProps) {
   const [phase, setPhase] = useState<'fly' | 'land' | 'gone'>('fly');

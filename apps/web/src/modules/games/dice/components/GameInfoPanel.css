@@ -101,7 +101,7 @@
 
 .dice-info-panel__role--active {
   color: #1a0a00;
-  background: linear-gradient(180deg, #ffd700, #c9a227);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
 }
 
 .dice-info-panel__matchup {
@@ -216,7 +216,7 @@
   font-size: 0.72rem;
   font-weight: 700;
   color: #1a1020;
-  background: linear-gradient(180deg, #f5d76e, #c9a227);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
   border: none;
   border-radius: 8px;
   cursor: pointer;

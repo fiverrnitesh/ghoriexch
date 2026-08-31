@@ -20,13 +20,15 @@ import {
 import {
   buildInitialMatch,
   clearPhaseTimer,
-  countOccupants,
+  countRealUsers,
   diceGameEngine,
   generateRoundId,
+  seatTigerBot,
   shouldAddTigerBot,
   startTurnTimer,
   DEFAULT_DICE_CONFIG,
   DICE_ACTIONS,
+  DICE_MAX_REAL_PLAYERS,
   getActiveHolderActorId,
   isEligibleSideBettor,
   type DiceGameState,
@@ -185,18 +187,15 @@ export class DiceDemoService {
 
   async addDemoPlayers(sessionId: string) {
     this.assertDevEnabled();
-    const MAX_VISIBLE = 8; // 7 real + Shoot = 8 visual slots
-
-    const session = await prisma.gameSession.findUnique({ where: { id: sessionId } });
-    const currentState = session?.state as unknown as DiceGameState | undefined;
-    const currentOccupied = currentState ? countOccupants(currentState.seats) : 0;
-
     const emails = DEMO_PLAYERS.map((p) => p.email);
     const users = await prisma.user.findMany({ where: { email: { in: [...emails] } } });
 
     let added = 0;
     for (const email of emails) {
-      if (currentOccupied + added >= MAX_VISIBLE) break;
+      const session = await prisma.gameSession.findUnique({ where: { id: sessionId } });
+      const currentState = session?.state as unknown as DiceGameState | undefined;
+      const currentReals = currentState ? countRealUsers(currentState.seats) : 0;
+      if (currentReals >= DICE_MAX_REAL_PLAYERS) break;
       const user = users.find((u) => u.email === email);
       if (!user) continue;
       try {
@@ -234,29 +233,8 @@ export class DiceDemoService {
       }
     }
 
-    // Cap to 6 visible occupants (5 real + Shoot) — vacate extras so rotation
-    // only cycles among players actually rendered on the visual table.
-    const MAX_VISIBLE = 6;
-    const occupied = state.seats.filter((s) => s.occupant);
-    if (occupied.length > MAX_VISIBLE) {
-      const tigerIdx = occupied.findIndex((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger');
-      const hostIdx = state.roomHostUserId
-        ? occupied.findIndex((s) => s.occupant?.type === 'USER' && s.occupant.userId === state.roomHostUserId)
-        : -1;
-      const keep = new Set<number>();
-      if (tigerIdx >= 0) keep.add(occupied[tigerIdx]!.seatIndex);
-      if (hostIdx >= 0) keep.add(occupied[hostIdx]!.seatIndex);
-      for (const s of occupied) {
-        if (keep.size >= MAX_VISIBLE) break;
-        if (!keep.has(s.seatIndex)) keep.add(s.seatIndex);
-      }
-      for (const s of state.seats) {
-        if (s.occupant && !keep.has(s.seatIndex)) s.occupant = null;
-      }
-    }
-
-    if (countOccupants(state.seats) < state.config.minEffectivePopulation) {
-      throw new ValidationError('Need at least 2 seated players to start a round');
+    if (countRealUsers(state.seats) < 1) {
+      throw new ValidationError('Need at least one real player to start a round');
     }
 
     const match = buildInitialMatch(state.seats, state.roomHostUserId ?? null);
@@ -310,11 +288,11 @@ export class DiceDemoService {
           balance: p.balance,
           availableBalance: p.balance,
           lockedBalance: 0,
-          currency: 'USD',
+          currency: 'PKR',
         },
       });
     }
-    return { reset: DEMO_PLAYERS.length, currency: 'USD' };
+    return { reset: DEMO_PLAYERS.length, currency: 'PKR' };
   }
 
   async resetSessionTable(sessionId: string, hostUserId: string) {
@@ -343,6 +321,7 @@ export class DiceDemoService {
 
     diceGameEngine.loadState(sessionId, session.state as unknown as DiceGameState);
     const state = diceGameEngine.getInternalState(sessionId);
+    if (state) seatTigerBot(state);
     if (!state?.activeMatch) throw new ValidationError('No active match — Force Start Round first');
     if (state.phase !== 'BETTING') throw new ValidationError(`Betting not open (${state.phase})`);
     if (state.mainBet) throw new ValidationError('Main bet already placed');

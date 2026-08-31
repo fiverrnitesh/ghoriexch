@@ -1,7 +1,7 @@
 import { DiceGameEngine } from './dice.engine.js';
 import { DICE_ACTIONS, DEFAULT_DICE_CONFIG } from './dice.constants.js';
 import { assignSeat, buildInitialMatch, createEmptySeats } from './dice.logic.js';
-import { startFinalLockWindow, startSideBetWindow } from './dice.phase-timer.js';
+import { startFinalLockWindow } from './dice.phase-timer.js';
 import { startTurnTimer } from './dice.turn-timer.js';
 import type { DiceGameState, PlayerChoice } from './dice.types.js';
 
@@ -13,6 +13,8 @@ export const DEFAULT_TEST_STATE_FIELDS: Pick<
   | 'gameMode'
   | 'acceptedParticipantIds'
   | 'opponentMatchWindowEndsAt'
+  | 'interRoundPauseEndsAt'
+  | 'diceHandoffEndsAt'
   | 'finalLockEndsAt'
   | 'phaseTimerId'
 > = {
@@ -20,6 +22,8 @@ export const DEFAULT_TEST_STATE_FIELDS: Pick<
   gameMode: 'ONLINE',
   acceptedParticipantIds: [],
   opponentMatchWindowEndsAt: null,
+  interRoundPauseEndsAt: null,
+  diceHandoffEndsAt: null,
   finalLockEndsAt: null,
   phaseTimerId: null,
 };
@@ -45,9 +49,11 @@ export function buildTable(playerCount: number, sessionId = 'test-session', opts
     roomHostUserId: hostUserId,
     gameMode: opts?.gameMode ?? 'ONLINE',
     acceptedParticipantIds: Array.from({ length: playerCount }, (_, i) => `u${i}`),
-    opponentMatchWindowEndsAt: null,
-    sideBetWindowEndsAt: null,
-    finalLockEndsAt: null,
+  opponentMatchWindowEndsAt: null,
+  sideBetWindowEndsAt: null,
+  interRoundPauseEndsAt: null,
+  diceHandoffEndsAt: null,
+  finalLockEndsAt: null,
     phaseTimerId: null,
     mainBet: null,
     dice: null,
@@ -90,9 +96,76 @@ export async function placeAndConfirmMainBet(
   engine.loadState(sessionId, afterBet);
 }
 
-export function openSideBetting(engine: DiceGameEngine, sessionId: string, nowMs = Date.now()) {
+export async function advanceDiceHandoff(engine: DiceGameEngine, sessionId: string, nowMs = Date.now()) {
   const state = engine.getInternalState(sessionId)!;
-  startSideBetWindow(state, state.config.sideBetWindowSeconds, nowMs);
+  if (state.phase !== 'DICE_HANDOFF' || !state.phaseTimerId) return;
+  const deadline = state.diceHandoffEndsAt
+    ? Date.parse(state.diceHandoffEndsAt) + 1
+    : nowMs + 3000;
+  await engine.processAction({
+    sessionId,
+    userId: 'system',
+    action: DICE_ACTIONS.PHASE_TIMEOUT,
+    payload: { phaseTimerId: state.phaseTimerId, systemTimeout: true, nowMs: deadline },
+  });
+}
+
+export async function advanceFinalLock(engine: DiceGameEngine, sessionId: string, nowMs = Date.now()) {
+  const state = engine.getInternalState(sessionId)!;
+  if (state.phase === 'DICE_HANDOFF') {
+    await advanceDiceHandoff(engine, sessionId, nowMs);
+  }
+  const afterHandoff = engine.getInternalState(sessionId)!;
+  if (afterHandoff.phase !== 'FINAL_LOCK' || !afterHandoff.phaseTimerId) return;
+  const deadline = afterHandoff.finalLockEndsAt
+    ? Date.parse(afterHandoff.finalLockEndsAt) + 1
+    : nowMs + 6000;
+  await engine.processAction({
+    sessionId,
+    userId: 'system',
+    action: DICE_ACTIONS.PHASE_TIMEOUT,
+    payload: { phaseTimerId: afterHandoff.phaseTimerId, systemTimeout: true, nowMs: deadline },
+  });
+}
+
+export async function closeBettingWindow(engine: DiceGameEngine, sessionId: string) {
+  const st = engine.getInternalState(sessionId)!;
+  await engine.processAction({
+    sessionId,
+    userId: 'system',
+    action: DICE_ACTIONS.TURN_TIMEOUT,
+    payload: {
+      turnTimerId: st.turnTimerId!,
+      systemTimeout: true,
+      nowMs: Date.parse(st.turnDeadlineAt!) + 1,
+    },
+  });
+}
+
+export async function closeBettingAndRoll(engine: DiceGameEngine, sessionId: string) {
+  await closeBettingWindow(engine, sessionId);
+  await advanceDiceHandoff(engine, sessionId);
+  await advanceFinalLock(engine, sessionId);
+}
+
+export async function advanceInterRoundPause(engine: DiceGameEngine, sessionId: string, nowMs = Date.now()) {
+  const state = engine.getInternalState(sessionId)!;
+  if (state.phase !== 'INTER_ROUND_PAUSE' || !state.phaseTimerId) return;
+  const deadline = state.interRoundPauseEndsAt
+    ? Date.parse(state.interRoundPauseEndsAt) + 1
+    : nowMs + 6000;
+  await engine.processAction({
+    sessionId,
+    userId: 'system',
+    action: DICE_ACTIONS.PHASE_TIMEOUT,
+    payload: { phaseTimerId: state.phaseTimerId, systemTimeout: true, nowMs: deadline },
+  });
+}
+
+/** @deprecated Unified betting — peer bets stay in BETTING phase */
+export function openSideBetting(engine: DiceGameEngine, sessionId: string, _nowMs = Date.now()) {
+  const state = engine.getInternalState(sessionId)!;
+  state.phase = 'BETTING';
   engine.loadState(sessionId, state);
 }
 
@@ -102,7 +175,7 @@ export function openFinalLock(engine: DiceGameEngine, sessionId: string, nowMs =
   engine.loadState(sessionId, state);
 }
 
-/** Confirms match lock and opens the 5s roll window. */
+/** Confirms match lock and opens the 5s roll window (skips handoff — test helper only). */
 export async function lockMainBet(engine: DiceGameEngine, sessionId: string, nowMs?: number) {
   const state = engine.getInternalState(sessionId)!;
   const holderSeat = state.seats.find((s) => s.seatIndex === state.activeMatch!.holderSeatIndex);

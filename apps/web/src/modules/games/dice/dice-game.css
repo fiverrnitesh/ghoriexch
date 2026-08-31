@@ -97,6 +97,19 @@ html.dice-game-active .ds-app-shell__main {
   height: 20px;
 }
 
+.dice-game-viewport__global-timer {
+  position: absolute;
+  top: 0.65rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  pointer-events: none;
+}
+
+.dice-game-viewport__global-timer--pause {
+  opacity: 0.92;
+}
+
 .dice-game-viewport__stage {
   position: relative;
   flex: 1;
@@ -427,6 +440,22 @@ html.dice-game-active .ds-app-shell__main {
   text-align: center;
   font-weight: 600;
   font-size: 0.62rem;
+}
+
+.dice-game-viewport__global-timer--roll {
+  filter: drop-shadow(0 4px 14px rgba(251, 191, 36, 0.35));
+}
+
+.dice-status-banner--roll_ready {
+  background: rgba(251, 191, 36, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
 }
 
 .dice-status-banner--turn_timeout {

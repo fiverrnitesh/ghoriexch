@@ -178,7 +178,9 @@ function bounceHeight(p: number) {
   return 0.05 * 4 * u * (1 - u);
 }
 
-type AnimPhase = 'rest' | 'in_box' | 'throw' | 'tumble' | 'settle';
+type AnimPhase = 'rest' | 'in_box' | 'pass' | 'throw' | 'tumble' | 'settle';
+
+const PASS_S = 1.8;
 
 type DieAnim = {
   axis: THREE.Vector3;
@@ -190,6 +192,8 @@ type DieAnim = {
   restPos: THREE.Vector3;
   throwFrom: THREE.Vector3;
   throwTo: THREE.Vector3;
+  passFrom: THREE.Vector3;
+  passTo: THREE.Vector3;
   restYaw: number;
 };
 
@@ -204,6 +208,8 @@ function newDieAnim(): DieAnim {
     restPos: new THREE.Vector3(),
     throwFrom: new THREE.Vector3(),
     throwTo: new THREE.Vector3(),
+    passFrom: new THREE.Vector3(),
+    passTo: new THREE.Vector3(),
     restYaw: 0,
   };
 }
@@ -239,6 +245,8 @@ export function TableDice3D({
   throwRequest = null,
   trayVisible = false,
   trayWorldPos = null,
+  handoffActive = false,
+  handoffTargetSeat = null,
   onThrowComplete,
 }: {
   rolling: boolean;
@@ -248,12 +256,16 @@ export function TableDice3D({
   throwRequest?: DiceThrowRequest | null;
   trayVisible?: boolean;
   trayWorldPos?: [number, number, number] | null;
+  /** Dice slide to the roller before the 5s roll window. */
+  handoffActive?: boolean;
+  handoffTargetSeat?: number | null;
   onThrowComplete?: () => void;
 }) {
   const pips = usePipTextures();
   const dieA = useRef<THREE.Group>(null);
   const dieB = useRef<THREE.Group>(null);
   const lastThrowId = useRef<string | null>(null);
+  const lastHandoffKey = useRef<string | null>(null);
   const onThrowCompleteRef = useRef(onThrowComplete);
   onThrowCompleteRef.current = onThrowComplete;
 
@@ -424,6 +436,24 @@ export function TableDice3D({
     if (playSound) soundService.play('dice_throw');
   };
 
+  const beginPassToTray = () => {
+    const gs = groups();
+    if (!gs) return;
+    const anchor = trayAnchor();
+    const a = anim.current;
+    a.phase = 'pass';
+    a.clock = 0;
+    a.target = null;
+    gs.forEach((g, i) => {
+      const off = BOX_OFFSETS[i]!;
+      const d = a.dice[i]!;
+      d.passFrom.copy(g.position);
+      d.passTo.set(anchor.x + off[0], REST_Y_FLAT + off[1], anchor.z + off[2]);
+      g.scale.setScalar(1);
+    });
+    soundService.play('rotation');
+  };
+
   const beginSettle = (faces: [DieFace, DieFace]) => {
     const gs = groups();
     if (!gs) return;
@@ -478,6 +508,19 @@ export function TableDice3D({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trayVisible, rolling, throwRequest?.id]);
 
+  // Slide dice to the active roller before the roll window opens.
+  useEffect(() => {
+    if (!handoffActive || handoffTargetSeat == null || !trayWorldPos) return;
+    if (rolling) return;
+    const key = String(handoffTargetSeat);
+    const phase = anim.current.phase;
+    if (phase === 'throw' || phase === 'tumble' || phase === 'settle') return;
+    if (lastHandoffKey.current === key && phase === 'pass') return;
+    lastHandoffKey.current = key;
+    beginPassToTray();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handoffActive, handoffTargetSeat, trayWorldPos?.[0], trayWorldPos?.[1], trayWorldPos?.[2], rolling]);
+
   // Auto / spectator / timeout: throw from roller toward table centre.
   useEffect(() => {
     if (!rolling) return;
@@ -496,7 +539,7 @@ export function TableDice3D({
       beginThrow(dirX, dirZ, 0.45, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolling, mode]);
+  }, [rolling, mode, dice?.[0], dice?.[1]]);
 
   useEffect(() => {
     if (!dice) return;
@@ -523,6 +566,26 @@ export function TableDice3D({
         g.position.set(anchor.x + off[0], anchor.y + off[1], anchor.z + off[2]);
         g.scale.setScalar(0.001);
       });
+      return;
+    }
+
+    if (a.phase === 'pass') {
+      const p = Math.min(1, a.clock / PASS_S);
+      const e = easeOutCubic(p);
+      gs.forEach((g, i) => {
+        const d = a.dice[i]!;
+        g.position.lerpVectors(d.passFrom, d.passTo, e);
+        g.position.y = REST_Y_FLAT + Math.sin(p * Math.PI) * 0.12;
+        g.scale.setScalar(1);
+      });
+      if (p >= 1) {
+        if (trayVisible) {
+          placeInBox();
+        } else {
+          a.phase = 'rest';
+          a.clock = 0;
+        }
+      }
       return;
     }
 

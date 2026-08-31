@@ -154,7 +154,7 @@ export class WalletService {
     const providerResult = await provider.initiateDeposit({
       userId,
       amount: parsed,
-      currency: 'USD',
+      currency: 'PKR',
       idempotencyKey,
     });
 
@@ -199,7 +199,7 @@ export class WalletService {
     const providerResult = await provider.initiateWithdrawal({
       userId,
       amount: parsed,
-      currency: 'USD',
+      currency: 'PKR',
       destination,
       idempotencyKey,
     });

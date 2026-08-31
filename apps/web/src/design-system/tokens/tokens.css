@@ -29,7 +29,7 @@
     #6b6b78 75%,
     #b8b8c0 100%
   );
-  --ds-border-gold: rgba(245, 200, 66, 0.4);
+  --ds-border-gold: rgba(255, 198, 41, 0.4);
   --ds-border-subtle: rgba(255, 255, 255, 0.06);
 
   /* ─── Text ─── */
@@ -37,13 +37,13 @@
   --ds-text-secondary: #a89888;
   --ds-text-muted: #7a6e62;
   --ds-text-inverse: #1a0a00;
-  --ds-text-gold: #f5c842;
+  --ds-text-gold: #FFC629;
 
   /* ─── Brand colors ─── */
-  --ds-gold: #f5c842;
-  --ds-gold-dim: #c9a227;
+  --ds-gold: #FFC629;
+  --ds-gold-dim: #D9A01B;
   --ds-gold-dark: #8b6914;
-  --ds-gold-glow: rgba(245, 200, 66, 0.32);
+  --ds-gold-glow: rgba(255, 198, 41, 0.35);
   --ds-chrome: #c0c0c8;
   --ds-chrome-dim: #888894;
   --ds-red: #c41e3a;
@@ -69,7 +69,7 @@
   --ds-shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(139, 0, 32, 0.25);
   --ds-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 4px rgba(0, 0, 0, 0.35);
   --ds-shadow-bevel: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.4);
-  --ds-shadow-glow-gold: 0 0 16px var(--ds-gold-glow), 0 0 32px rgba(245, 200, 66, 0.12);
+  --ds-shadow-glow-gold: 0 0 16px var(--ds-gold-glow), 0 0 32px rgba(255, 198, 41, 0.15);
   --ds-shadow-glow-red: 0 0 16px var(--ds-red-glow);
   --ds-shadow-button: 0 4px 0 rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35);
 

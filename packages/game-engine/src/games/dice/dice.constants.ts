@@ -17,22 +17,81 @@ export const OPPOSITE_FACES: Record<Exclude<DieFace, 'BLANK'>, Exclude<DieFace, 
 
 export const NUMBERED_FACES: Exclude<DieFace, 'BLANK'>[] = [1, 3, 4, 6];
 
+/** Physical oval: Shoot + 7 chairs. Real-player cap is 7; 8th real gets a new table. */
+export const DICE_MAX_REAL_PLAYERS = 7;
+export const DICE_TABLE_SEAT_COUNT = 8;
+export const DICE_TABLE_OCCUPANT_TARGET = DICE_TABLE_SEAT_COUNT;
+
+/**
+ * Absolute seatIndex (increasing = clockwise from B).
+ * Anti-clockwise walk (decreasing index): B → C → F → H → Shoot → D → E → G → B.
+ */
+export const DICE_SEAT = {
+  B: 0,
+  G: 1,
+  E: 2,
+  D: 3,
+  SHOOT: 4,
+  H: 5,
+  F: 6,
+  C: 7,
+} as const;
+
+export type DiceSeatId = (typeof DICE_SEAT)[keyof typeof DICE_SEAT];
+
+/** Real users replace filler bots in this order. Shoot is never replaced. */
+export const DICE_JOIN_ORDER: readonly DiceSeatId[] = [
+  DICE_SEAT.B,
+  DICE_SEAT.C,
+  DICE_SEAT.D,
+  DICE_SEAT.F,
+  DICE_SEAT.E,
+  DICE_SEAT.G,
+  DICE_SEAT.H,
+];
+
+export const DICE_FILLER_BOTS: Record<number, { botId: string; name: string }> = {
+  [DICE_SEAT.B]: { botId: 'filler_b', name: 'B' },
+  [DICE_SEAT.C]: { botId: 'filler_c', name: 'C' },
+  [DICE_SEAT.D]: { botId: 'filler_d', name: 'D' },
+  [DICE_SEAT.E]: { botId: 'filler_e', name: 'E' },
+  [DICE_SEAT.F]: { botId: 'filler_f', name: 'F' },
+  [DICE_SEAT.G]: { botId: 'filler_g', name: 'G' },
+  [DICE_SEAT.H]: { botId: 'filler_h', name: 'H' },
+};
+
+/** Diagram labels for absolute seatIndex (QA / nameplates). */
+export const DICE_SEAT_LABEL: Record<number, string> = {
+  [DICE_SEAT.B]: 'B',
+  [DICE_SEAT.G]: 'G',
+  [DICE_SEAT.E]: 'E',
+  [DICE_SEAT.D]: 'D',
+  [DICE_SEAT.SHOOT]: 'Shoot',
+  [DICE_SEAT.H]: 'H',
+  [DICE_SEAT.F]: 'F',
+  [DICE_SEAT.C]: 'C',
+};
+
 export const DEFAULT_DICE_CONFIG: DiceConfig = {
   minPlayers: 2,
-  maxPlayers: 8,
+  maxPlayers: DICE_MAX_REAL_PLAYERS,
   minEffectivePopulation: 2,
   opponentMatchWindowSeconds: 30,
-  /** 10-second accept/reject window after betting closes */
-  sideBetWindowSeconds: 10,
-  /** 5-second manual roll window (server auto-rolls on expiry) */
+  /** Unified 30s window for main bet + Haar/Zeet peer bets */
+  sideBetWindowSeconds: 30,
+  /** Pause between rounds after settlement */
+  interRoundPauseSeconds: 5,
+  /** Short lock before NO_RESULT re-roll */
   finalLockSeconds: 5,
+  /** Dice travel to roller before the 5s roll window */
+  diceHandoffSeconds: 2,
   platformFeeRate: 0.1,
   payoutMultiplier: 1.9,
   minBet: 10,
   maxBet: 10000,
   botName: 'Shoot',
-  /** 15-second server-authoritative betting window */
-  turnTimeoutSeconds: 15,
+  /** Same as sideBetWindowSeconds — one visible betting timer for all */
+  turnTimeoutSeconds: 30,
 };
 
 export const DICE_ACTIONS = {
@@ -56,6 +115,7 @@ export const DICE_EVENTS = {
   PLAYER_LEFT: 'dice:player_left',
   MATCHUP_SET: 'dice:matchup_set',
   BETTING_OPEN: 'dice:betting_open',
+  PASS_TO_ROLLER: 'dice:pass_to_roller',
   MAIN_BET_PLACED: 'dice:main_bet_placed',
   MAIN_MATCH_CONFIRMED: 'dice:main_match_confirmed',
   OPPONENT_MATCH_EXPIRED: 'dice:opponent_match_expired',

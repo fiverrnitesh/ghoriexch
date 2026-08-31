@@ -229,7 +229,7 @@ export class AgentService {
               balance: initialCoins,
               availableBalance: initialCoins,
               lockedBalance: 0,
-              currency: 'USD',
+              currency: 'PKR',
             },
           },
         },

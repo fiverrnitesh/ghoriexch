@@ -65,6 +65,13 @@
   width: 100%;
 }
 
+@media (max-width: 640px) {
+  .lobby-section__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--ds-space-3);
+  }
+}
+
 .lobby-section__empty {
   margin: 0;
   color: var(--ds-text-secondary);

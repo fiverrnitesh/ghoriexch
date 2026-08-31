@@ -23,10 +23,10 @@ export function BetsPage() {
           }},
           { key: 'game', label: 'Game', render: (r) => String((r.game as { name: string })?.name ?? '—') },
           { key: 'room', label: 'Room', render: (r) => String((r.room as { code: string })?.code ?? '—') },
-          { key: 'amount', label: 'Amount', render: (r) => `$${r.amount}` },
+          { key: 'amount', label: 'Amount', render: (r) => `₨ ${r.amount}` },
           { key: 'selection', label: 'Prediction', render: (r) => JSON.stringify(r.selection ?? {}) },
           { key: 'status', label: 'Status', render: (r) => <StatusBadge status={String(r.status)} /> },
-          { key: 'payout', label: 'Payout', render: (r) => r.payout ? `$${r.payout}` : '—' },
+          { key: 'payout', label: 'Payout', render: (r) => r.payout ? `₨ ${r.payout}` : '—' },
           { key: 'createdAt', label: 'Placed', render: (r) => new Date(String(r.createdAt)).toLocaleString() },
         ]}
         rows={data?.items ?? []}

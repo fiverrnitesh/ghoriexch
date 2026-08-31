@@ -11,6 +11,8 @@ export type DicePhase =
   | 'OPPONENT_MATCHING'
   | 'MAIN_MATCH_CONFIRMED'
   | 'SIDE_BETTING'
+  | 'INTER_ROUND_PAUSE'
+  | 'DICE_HANDOFF'
   | 'FINAL_LOCK'
   /** @deprecated Use FINAL_LOCK — kept for backward-compatible reads */
   | 'BETTING_LOCKED'
@@ -38,9 +40,14 @@ export interface DiceConfig {
   minEffectivePopulation: number;
   /** Opponent must match holder stake within this window */
   opponentMatchWindowSeconds: number;
+  /** Unified Haar/Zeet + main-bet window (seconds) */
   sideBetWindowSeconds: number;
-  /** Countdown after side bets close, before auto-roll */
+  /** Pause after settlement before the next betting window */
+  interRoundPauseSeconds: number;
+  /** Countdown after dice reaches roller, before throw */
   finalLockSeconds: number;
+  /** Seconds for dice to travel to the active roller before roll window */
+  diceHandoffSeconds: number;
   /** Platform fee on matched main-bet pool (e.g. 0.10 = 10%) */
   platformFeeRate: number;
   /** Side-bet total return multiplier on win (e.g. 1.9 = stake 100 returns 190) */
@@ -94,19 +101,28 @@ export interface MainBetState {
   locked: boolean;
 }
 
+/** Peer Haar/Zeet bet — prediction is always on holder outcome (WIN=Zeet, LOSS=Haar). */
 export interface SideBetState {
   id: string;
   backerUserId: string;
-  targetUserId: string;
+  /** Seated player the backer bets with (acceptor shown in UI). */
+  counterpartyUserId?: string;
+  /** @deprecated Use counterpartyUserId — kept for persisted session reads */
+  targetUserId?: string;
   prediction: SideBetPrediction;
   amount: number;
   status: SideBetLifecycle;
   expiresAt: string;
-  /** Real-player accepted liability (wallet-locked). */
+  /** Counterparty wallet-locked portion (internal). */
+  counterpartyAcceptedAmount?: number;
+  /** @deprecated Use counterpartyAcceptedAmount */
   playerAcceptedAmount?: number;
-  playerLiabilityUserId?: string;
-  /** Unmatched remainder assigned to TIGER. */
+  /** Internal house/Shoot liability for unmatched remainder. */
+  systemLiability?: number;
+  /** @deprecated Use systemLiability */
   tigerLiability?: number;
+  /** Always counterparty for public UI — full amount appears accepted by them. */
+  displayAcceptedByUserId?: string;
 }
 
 export interface DiceGameState {
@@ -121,6 +137,8 @@ export interface DiceGameState {
   acceptedParticipantIds: string[];
   opponentMatchWindowEndsAt: string | null;
   sideBetWindowEndsAt: string | null;
+  interRoundPauseEndsAt: string | null;
+  diceHandoffEndsAt: string | null;
   finalLockEndsAt: string | null;
   /** Idempotency for active phase window timeout (30s/20s/10s) */
   phaseTimerId: string | null;
@@ -131,6 +149,8 @@ export interface DiceGameState {
   config: DiceConfig;
   sideBets: SideBetState[];
   lastWinnerSeatIndex: number | null;
+  /** Last holder main-bet stake — used for timer auto-place */
+  lastHolderStakeAmount?: number | null;
   /** Seat currently holding the dice for this roll (may differ from holder on no-result pass). */
   rollerSeatIndex?: number | null;
   /** Test mode only — forced dice outcome */

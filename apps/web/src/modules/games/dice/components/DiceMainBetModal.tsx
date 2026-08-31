@@ -10,7 +10,7 @@ export function DiceMainBetModal({
   onClose,
   minBet = 10,
   maxBet = 10000,
-  currency = 'USD',
+  currency = 'PKR',
   formatAmount,
   availableBalance,
   onSubmit,

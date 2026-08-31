@@ -30,7 +30,7 @@
 
 .ds-countdown--gold {
   border-color: var(--ds-border-gold);
-  background: rgba(245, 200, 66, 0.06);
+  background: rgba(255, 198, 41, 0.06);
 }
 
 .ds-countdown--gold .ds-countdown__time {

@@ -2,12 +2,10 @@ import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import {
   BODY_HEIGHT,
-  FELT_CORNER,
   FELT_RX,
   FELT_RZ,
   FELT_Y,
   RAIL_HEIGHT,
-  TABLE_CORNER,
   TABLE_RX,
   TABLE_RZ,
   createFeltBumpCanvas,
@@ -15,11 +13,11 @@ import {
   createRailBumpCanvas,
   createRailCanvas,
   createRimTube,
+  ellipseShape,
   extrudeShape,
   feltLipShape,
   projectWorldUVs,
   railRingShape,
-  roundedRectShape,
 } from './tableGeometry';
 
 /** Inset border width on the felt, in world units, converted to per-axis texture margins. */
@@ -56,40 +54,39 @@ export function CasinoTableMesh() {
   const geos = useMemo(() => {
     // World-projected UVs keep the leather grain continuous instead of banding
     // along the extruded side walls.
-    const rail = extrudeShape(railRingShape(), RAIL_HEIGHT, 0.08, 128);
+    const rail = extrudeShape(railRingShape(), RAIL_HEIGHT, 0.08, 160);
     projectWorldUVs(rail, TABLE_RX, TABLE_RZ);
 
     // Inset so the rail overhangs it; the reference only shows a sliver of body.
     const body = extrudeShape(
-      roundedRectShape(TABLE_RX - 0.2, TABLE_RZ - 0.18, TABLE_CORNER - 0.2),
+      ellipseShape(TABLE_RX - 0.2, TABLE_RZ - 0.18),
       BODY_HEIGHT,
       0.06,
-      112,
+      160,
     );
     projectWorldUVs(body, TABLE_RX, TABLE_RZ);
 
     const skirt = extrudeShape(
-      roundedRectShape(TABLE_RX - 0.9, TABLE_RZ - 0.7, TABLE_CORNER - 0.7),
+      ellipseShape(TABLE_RX - 0.9, TABLE_RZ - 0.7),
       0.42,
       0.05,
-      96,
+      128,
     );
 
     const felt = extrudeShape(
-      roundedRectShape(FELT_RX, FELT_RZ, FELT_CORNER),
+      ellipseShape(FELT_RX, FELT_RZ),
       0.035,
       0.008,
-      112,
+      160,
     );
     projectWorldUVs(felt, FELT_RX, FELT_RZ);
 
-    const lip = extrudeShape(feltLipShape(), 0.014, 0.004, 112);
+    const lip = extrudeShape(feltLipShape(), 0.014, 0.004, 160);
 
     // Padded roll where the rail turns down into the felt.
     const innerRoll = createRimTube(
       FELT_RX + 0.08,
       FELT_RZ + 0.08,
-      FELT_CORNER + 0.07,
       RAIL_HEIGHT - 0.05,
       0.10,
     );
@@ -98,7 +95,6 @@ export function CasinoTableMesh() {
     const piping = createRimTube(
       TABLE_RX - 0.05,
       TABLE_RZ - 0.05,
-      TABLE_CORNER - 0.045,
       RAIL_HEIGHT - 0.05,
       0.062,
     );
@@ -107,7 +103,6 @@ export function CasinoTableMesh() {
     const edgeBand = createRimTube(
       TABLE_RX - 0.02,
       TABLE_RZ - 0.02,
-      TABLE_CORNER - 0.02,
       -0.05,
       0.07,
     );
@@ -143,7 +138,7 @@ export function CasinoTableMesh() {
           map={railMap}
           bumpMap={railBump}
           bumpScale={0.006}
-          color="#c9a227"
+          color="#D9A01B"
           roughness={0.32}
           metalness={0.72}
           envMapIntensity={1.1}

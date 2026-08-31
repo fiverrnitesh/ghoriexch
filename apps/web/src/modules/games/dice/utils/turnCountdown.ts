@@ -28,16 +28,22 @@ export function shouldShowTurnCountdown(
 export function getPhaseDeadlineIso(
   state: Pick<
     DiceGameState,
-    'phase' | 'opponentMatchWindowEndsAt' | 'sideBetWindowEndsAt' | 'finalLockEndsAt'
+    | 'phase'
+    | 'opponentMatchWindowEndsAt'
+    | 'sideBetWindowEndsAt'
+    | 'interRoundPauseEndsAt'
+    | 'diceHandoffEndsAt'
+    | 'finalLockEndsAt'
   > | null | undefined,
 ): string | null | undefined {
   if (!state) return undefined;
   if (state.phase === 'OPPONENT_MATCHING' || state.phase === 'MAIN_BET_PLACED') {
     return state.opponentMatchWindowEndsAt;
   }
-  if (state.phase === 'SIDE_BETTING' || state.phase === 'MAIN_MATCH_CONFIRMED') {
-    return state.sideBetWindowEndsAt;
+  if (state.phase === 'INTER_ROUND_PAUSE') {
+    return state.interRoundPauseEndsAt;
   }
+  if (state.phase === 'DICE_HANDOFF') return state.diceHandoffEndsAt;
   if (state.phase === 'FINAL_LOCK') return state.finalLockEndsAt;
   return undefined;
 }
@@ -45,7 +51,12 @@ export function getPhaseDeadlineIso(
 export function getPhaseRemainingSeconds(
   state: Pick<
     DiceGameState,
-    'phase' | 'opponentMatchWindowEndsAt' | 'sideBetWindowEndsAt' | 'finalLockEndsAt'
+    | 'phase'
+    | 'opponentMatchWindowEndsAt'
+    | 'sideBetWindowEndsAt'
+    | 'interRoundPauseEndsAt'
+    | 'diceHandoffEndsAt'
+    | 'finalLockEndsAt'
   > | null | undefined,
   nowMs = Date.now(),
 ): number | undefined {

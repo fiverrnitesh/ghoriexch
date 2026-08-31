@@ -4,12 +4,20 @@ import {
   NUMBERED_FACES,
   STANDING_DIE_MIN_INTERVAL_MINUTES,
   STANDING_DIE_MAX_INTERVAL_MINUTES,
+  DICE_FILLER_BOTS,
+  DICE_JOIN_ORDER,
+  DICE_MAX_REAL_PLAYERS,
+  DICE_SEAT,
+  DICE_SEAT_LABEL,
+  DICE_TABLE_SEAT_COUNT,
+  DEFAULT_DICE_CONFIG,
 } from './dice.constants.js';
 import type {
   ActiveMatch,
   DieFace,
   DiceGameState,
   DiceRoundResult,
+  DiceOccupant,
   DiceSeat,
   PlayerChoice,
   SideBetLifecycle,
@@ -239,6 +247,14 @@ export function findNextSeatAntiClockwise(
 }
 
 export function buildInitialMatch(seats: DiceSeat[], hostUserId?: string | null): ActiveMatch | null {
+  if (countRealUsers(seats) < 1) return null;
+
+  const shootSeat = seats.find((s) => isTigerOccupant(s.occupant));
+  const bSeat = seats.find((s) => s.seatIndex === DICE_SEAT.B && s.occupant);
+  if (shootSeat && bSeat && shootSeat.seatIndex !== bSeat.seatIndex) {
+    return { holderSeatIndex: DICE_SEAT.B, opponentSeatIndex: shootSeat.seatIndex };
+  }
+
   const occupied = seats.filter((s) => s.occupant).sort((a, b) => a.seatIndex - b.seatIndex);
   if (occupied.length < 2) return null;
 
@@ -266,13 +282,126 @@ export function isAcceptedParticipant(state: DiceGameState, userId: string): boo
   return state.seats.some((s) => s.occupant?.type === 'USER' && s.occupant.userId === userId);
 }
 
-export function isEligibleSideBettor(state: DiceGameState, userId: string): boolean {
+export function getPeerBetCounterpartyId(sb: SideBetState): string {
+  return sb.counterpartyUserId ?? sb.targetUserId ?? '';
+}
+
+export function getPeerBetAcceptedAmount(sb: SideBetState): number {
+  return sb.counterpartyAcceptedAmount ?? sb.playerAcceptedAmount ?? 0;
+}
+
+export function getPeerBetSystemLiability(sb: SideBetState): number {
+  return sb.systemLiability ?? sb.tigerLiability ?? 0;
+}
+
+export function normalizePeerBet(sb: SideBetState): SideBetState {
+  const counterpartyUserId = getPeerBetCounterpartyId(sb);
+  const counterpartyAcceptedAmount = getPeerBetAcceptedAmount(sb);
+  const systemLiability = getPeerBetSystemLiability(sb);
+  return {
+    ...sb,
+    counterpartyUserId,
+    targetUserId: counterpartyUserId,
+    counterpartyAcceptedAmount,
+    playerAcceptedAmount: counterpartyAcceptedAmount,
+    systemLiability,
+    tigerLiability: systemLiability,
+    displayAcceptedByUserId: sb.displayAcceptedByUserId ?? counterpartyUserId,
+  };
+}
+
+export function finalizePeerBetAcceptance(
+  sb: SideBetState,
+  counterpartyUserId: string,
+  acceptedAmount: number,
+): void {
+  const playerPart = roundMoney(Math.min(acceptedAmount, sb.amount));
+  const systemPart = roundMoney(sb.amount - playerPart);
+  sb.counterpartyAcceptedAmount = playerPart;
+  sb.playerAcceptedAmount = playerPart;
+  sb.systemLiability = systemPart;
+  sb.tigerLiability = systemPart;
+  sb.counterpartyUserId = counterpartyUserId;
+  sb.targetUserId = counterpartyUserId;
+  sb.displayAcceptedByUserId = counterpartyUserId;
+  sb.status = 'ACCEPTED';
+}
+
+export function isEligiblePeerBettor(state: DiceGameState, userId: string): boolean {
   if (!isAcceptedParticipant(state, userId)) return false;
-  return isSpectator(state, userId);
+  return !isActiveMatchPlayer(state, userId);
+}
+
+/** @deprecated Use isEligiblePeerBettor */
+export function isEligibleSideBettor(state: DiceGameState, userId: string): boolean {
+  return isEligiblePeerBettor(state, userId);
+}
+
+export function isSeatedCounterparty(state: DiceGameState, counterpartyId: string): boolean {
+  if (!counterpartyId) return false;
+  return state.seats.some((seat) => {
+    const occ = seat.occupant;
+    if (!occ) return false;
+    if (occ.type === 'USER' && occ.userId === counterpartyId) return true;
+    if (occ.type === 'BOT' && (occ.botId === counterpartyId || `player_${occ.botId}` === counterpartyId)) {
+      return true;
+    }
+    return false;
+  });
+}
+
+/** @deprecated Peer bets use any seated counterparty */
+export function isActiveMatchTarget(state: DiceGameState, targetId: string): boolean {
+  return isSeatedCounterparty(state, targetId);
 }
 
 export function hasTigerBot(seats: DiceSeat[]): boolean {
-  return seats.some((s) => s.occupant?.type === 'BOT' && s.occupant.botId === 'tiger');
+  return seats.some((s) => isTigerOccupant(s.occupant));
+}
+
+export function isTigerOccupant(occupant: DiceOccupant | null | undefined): boolean {
+  return occupant?.type === 'BOT' && occupant.botId === 'tiger';
+}
+
+export function isFillerBot(occupant: DiceOccupant | null | undefined): boolean {
+  return occupant?.type === 'BOT' && !!occupant.botId && occupant.botId !== 'tiger';
+}
+
+/** True when counterparty id refers to a seated filler bot (player_filler_* or filler_*). */
+export function isFillerCounterpartyId(state: DiceGameState, counterpartyId: string): boolean {
+  if (!counterpartyId) return false;
+  if (counterpartyId.startsWith('player_filler_') || counterpartyId.startsWith('filler_')) {
+    return state.seats.some((seat) => {
+      const occ = seat.occupant;
+      if (!occ || !isFillerBot(occ)) return false;
+      return occ.botId === counterpartyId
+        || `player_${occ.botId}` === counterpartyId;
+    });
+  }
+  return state.seats.some((seat) => {
+    const occ = seat.occupant;
+    return isFillerBot(occ)
+      && (occ!.botId === counterpartyId || `player_${occ!.botId}` === counterpartyId);
+  });
+}
+
+export function realPlayerCap(maxPlayers: number): number {
+  return Math.max(1, Math.min(maxPlayers, DICE_MAX_REAL_PLAYERS));
+}
+
+function shootOccupant(_botName?: string): DiceOccupant {
+  return {
+    type: 'BOT',
+    botId: 'tiger',
+    name: DICE_SEAT_LABEL[DICE_SEAT.SHOOT] ?? 'Shoot',
+    avatarUrl: null,
+  };
+}
+
+function fillerOccupant(seatIndex: number): DiceOccupant | null {
+  const spec = DICE_FILLER_BOTS[seatIndex];
+  if (!spec) return null;
+  return { type: 'BOT', botId: spec.botId, name: spec.name, avatarUrl: null };
 }
 
 /** Every room always has TIGER, including FRIENDS mode. TIGER uses a reserved seat. */
@@ -282,95 +411,123 @@ export function shouldAddTigerBot(
   _gameMode: DiceGameState['gameMode'] = 'ONLINE',
 ): boolean {
   if (hasTigerBot(seats)) return false;
-  return countOccupants(seats) < maxSeats;
+  return countOccupants(seats) < maxSeats || seats.some((s) => !s.occupant || isFillerBot(s.occupant));
 }
 
-/** Names and seeds for dynamic filler bot players so table always has 8 active seats */
-export const FILLER_BOT_POOL = [
-  { botId: 'bot_majid', name: 'majid', avatarSeed: 'majid' },
-  { botId: 'bot_sikander', name: 'sikander1', avatarSeed: 'sikander1' },
-  { botId: 'bot_rahul', name: 'Rahul', avatarSeed: 'rahul' },
-  { botId: 'bot_tanya', name: 'Tanya', avatarSeed: 'tanya' },
-  { botId: 'bot_rohit', name: 'Rohit', avatarSeed: 'rohit' },
-  { botId: 'bot_sneha', name: 'Sneha', avatarSeed: 'sneha' },
-  { botId: 'bot_arjun', name: 'Arjun', avatarSeed: 'arjun' },
-  { botId: 'bot_vikram', name: 'Vikram', avatarSeed: 'vikram' },
-] as const;
-
 /**
- * Ensures table always has exactly 8 players:
- * - 1 Shoot bot (always present)
- * - Real users (up to 7)
- * - Filler bots fill all remaining empty seats so total seated is always 8.
- * When real players join, filler bots automatically vacate.
+ * Always 8 occupants: Shoot at seat 4, filler bots in every other empty chair.
+ * Real users are never moved; fillers are only removed when a real player takes that chair.
  */
-export function syncTableSeats(state: DiceGameState, targetTotal = 8): DiceGameState {
-  // Ensure seats array has at least targetTotal slots
-  if (state.seats.length < targetTotal) {
-    const missing = targetTotal - state.seats.length;
+export function syncTableSeats(
+  state: DiceGameState,
+  _targetTotal = DICE_TABLE_SEAT_COUNT,
+): DiceGameState {
+  const seatCount = DICE_TABLE_SEAT_COUNT;
+  if (state.seats.length < seatCount) {
+    const missing = seatCount - state.seats.length;
     for (let i = 0; i < missing; i++) {
       state.seats.push({ seatIndex: state.seats.length, occupant: null });
     }
-    state.maxSeats = Math.max(state.maxSeats, targetTotal);
   }
-
-  // 1. Ensure Shoot (tiger) is seated
-  if (!hasTigerBot(state.seats)) {
-    state.seats = assignSeat(state.seats, {
-      type: 'BOT',
-      botId: 'tiger',
-      name: state.config.botName,
-      avatarUrl: null,
-    });
-  }
-
-  // 2. Count real users and determine needed filler bots
-  const realUserCount = countRealUsers(state.seats);
-  // Shoot takes 1 seat, real users take realUserCount seats
-  const neededFillerBots = Math.max(0, targetTotal - 1 - realUserCount);
-
-  // Current filler bots seated (excluding tiger)
-  const currentFillerSeats = state.seats.filter(
-    (s) => s.occupant?.type === 'BOT' && s.occupant.botId !== 'tiger',
-  );
-
-  // If we have too many filler bots (a real user joined), remove excess
-  if (currentFillerSeats.length > neededFillerBots) {
-    const excess = currentFillerSeats.length - neededFillerBots;
-    const toRemove = currentFillerSeats.slice(currentFillerSeats.length - excess);
-    for (const seat of toRemove) {
-      seat.occupant = null;
+  if (state.seats.length > seatCount) {
+    const extras = state.seats.filter((s) => s.seatIndex >= seatCount);
+    state.seats = state.seats.filter((s) => s.seatIndex < seatCount);
+    for (const extra of extras) {
+      if (extra.occupant?.type === 'USER') {
+        state.seats = assignRealPlayerSeat(state.seats, extra.occupant);
+      }
     }
   }
-
-  // If we need more filler bots (a real user left or on initial start), fill empty seats
-  const currentTotalOccupants = countOccupants(state.seats);
-  if (currentTotalOccupants < targetTotal) {
-    const existingBotIds = new Set(
-      state.seats
-        .filter((s) => s.occupant?.type === 'BOT')
-        .map((s) => s.occupant!.botId),
-    );
-
-    for (const botDef of FILLER_BOT_POOL) {
-      if (countOccupants(state.seats) >= targetTotal) break;
-      if (existingBotIds.has(botDef.botId)) continue;
-
-      state.seats = assignSeat(state.seats, {
-        type: 'BOT',
-        botId: botDef.botId,
-        name: botDef.name,
-        avatarUrl: `https://api.dicebear.com/7.x/personas/svg?seed=${botDef.avatarSeed}`,
-      });
-      existingBotIds.add(botDef.botId);
-    }
+  state.maxSeats = seatCount;
+  ensureShootSeated(state);
+  for (const seat of state.seats) {
+    if (seat.seatIndex === DICE_SEAT.SHOOT) continue;
+    if (!seat.occupant) seat.occupant = fillerOccupant(seat.seatIndex);
   }
-
   return state;
 }
 
+/** When Shoot was wrongly parked on B, move the lone real player onto B. */
+function migrateLoneRealPlayerToB(state: DiceGameState) {
+  const reals = state.seats.filter((s) => s.occupant?.type === 'USER');
+  if (reals.length !== 1) return;
+  const userSeat = reals[0]!;
+  if (userSeat.seatIndex === DICE_SEAT.B) return;
+  const bSeat = state.seats.find((s) => s.seatIndex === DICE_SEAT.B);
+  if (!bSeat || (bSeat.occupant && !isFillerBot(bSeat.occupant))) return;
+
+  const fromIdx = userSeat.seatIndex;
+  const userOcc = userSeat.occupant;
+  userSeat.occupant = bSeat.occupant;
+  bSeat.occupant = userOcc;
+  remapSeatIndex(state, fromIdx, DICE_SEAT.B);
+}
+
+function remapSeatIndex(state: DiceGameState, fromIdx: number, toIdx: number) {
+  if (fromIdx === toIdx) return;
+  const swap = (i: number) => (i === fromIdx ? toIdx : i === toIdx ? fromIdx : i);
+  if (state.activeMatch) {
+    state.activeMatch = {
+      holderSeatIndex: swap(state.activeMatch.holderSeatIndex),
+      opponentSeatIndex: swap(state.activeMatch.opponentSeatIndex),
+    };
+  }
+  if (state.rollerSeatIndex != null) {
+    state.rollerSeatIndex = swap(state.rollerSeatIndex);
+  }
+  if (state.lastWinnerSeatIndex != null) {
+    state.lastWinnerSeatIndex = swap(state.lastWinnerSeatIndex);
+  }
+}
+
+function ensureShootSeated(state: DiceGameState) {
+  const reserved = state.seats.find((s) => s.seatIndex === DICE_SEAT.SHOOT);
+  if (!reserved) return;
+  const existing = state.seats.find((s) => isTigerOccupant(s.occupant));
+  const shoot = shootOccupant(state.config.botName);
+
+  if (existing && existing.seatIndex === DICE_SEAT.SHOOT) {
+    reserved.occupant = shoot;
+    return;
+  }
+
+  if (existing && existing.seatIndex !== DICE_SEAT.SHOOT) {
+    const fromIdx = existing.seatIndex;
+    const displaced = reserved.occupant;
+    reserved.occupant = existing.occupant;
+    if (displaced?.type === 'USER') {
+      existing.occupant = displaced;
+    } else if (isTigerOccupant(displaced)) {
+      existing.occupant = fillerOccupant(existing.seatIndex);
+    } else {
+      existing.occupant = isFillerBot(displaced) ? displaced : fillerOccupant(existing.seatIndex);
+    }
+    if (isTigerOccupant(existing.occupant) && existing.seatIndex !== DICE_SEAT.SHOOT) {
+      existing.occupant = fillerOccupant(existing.seatIndex);
+    }
+    remapSeatIndex(state, fromIdx, DICE_SEAT.SHOOT);
+    // Legacy tables parked Shoot on B; pull the lone real onto B opposite Shoot.
+    if (fromIdx === DICE_SEAT.B) {
+      for (const seat of state.seats) {
+        if (seat.seatIndex === DICE_SEAT.SHOOT) continue;
+        if (!seat.occupant) seat.occupant = fillerOccupant(seat.seatIndex);
+      }
+      migrateLoneRealPlayerToB(state);
+    }
+    return;
+  }
+
+  if (reserved.occupant?.type === 'USER') {
+    const user = reserved.occupant;
+    reserved.occupant = shoot;
+    state.seats = assignRealPlayerSeat(state.seats, user);
+    return;
+  }
+  reserved.occupant = shoot;
+}
+
 export function seatTigerBot(state: DiceGameState): DiceGameState {
-  return syncTableSeats(state, 8);
+  return syncTableSeats(state);
 }
 
 /** Strip internal bot metadata from player-facing state. */
@@ -392,12 +549,22 @@ export function sanitizePublicDiceState(state: DiceGameState): DiceGameState {
   if (next.mainBet?.opponentBotId) {
     next.mainBet = { ...next.mainBet, opponentBotId: undefined };
   }
-  next.sideBets = next.sideBets.map((sb) => ({
-    ...sb,
-    playerAcceptedAmount: undefined,
-    playerLiabilityUserId: undefined,
-    tigerLiability: undefined,
-  }));
+  next.sideBets = next.sideBets.map((sb) => {
+    const normalized = normalizePeerBet(sb);
+    return {
+      id: normalized.id,
+      backerUserId: normalized.backerUserId,
+      counterpartyUserId: normalized.counterpartyUserId,
+      prediction: normalized.prediction,
+      amount: normalized.amount,
+      status: normalized.status,
+      expiresAt: normalized.expiresAt,
+      displayAcceptedByUserId:
+        normalized.status === 'ACCEPTED'
+          ? normalized.displayAcceptedByUserId ?? normalized.counterpartyUserId
+          : undefined,
+    };
+  });
   return next;
 }
 
@@ -416,8 +583,8 @@ export function rotateAfterWin(state: DiceGameState): ActiveMatch | null {
 }
 
 export function rotateAfterLoss(state: DiceGameState): ActiveMatch | null {
-  const { opponentSeatIndex } = state.activeMatch!;
-  const nextOpponent = findNextSeatAntiClockwise(state.seats, opponentSeatIndex, [opponentSeatIndex]);
+  const { holderSeatIndex, opponentSeatIndex } = state.activeMatch!;
+  const nextOpponent = findNextSeatAntiClockwise(state.seats, holderSeatIndex, [opponentSeatIndex]);
   if (nextOpponent === null) return null;
   return { holderSeatIndex: opponentSeatIndex, opponentSeatIndex: nextOpponent };
 }
@@ -426,9 +593,9 @@ export function countRealUsers(seats: DiceSeat[]): number {
   return seats.filter((s) => s.occupant?.type === 'USER').length;
 }
 
-/** TIGER always occupies a seat and does not count toward max real players. Table has at least 8 seats. */
-export function diceTableSeatCount(maxRealPlayers: number): number {
-  return Math.max(8, maxRealPlayers + 1);
+/** TIGER always occupies a seat and does not count toward max real players. */
+export function diceTableSeatCount(_maxRealPlayers?: number): number {
+  return DICE_TABLE_SEAT_COUNT;
 }
 
 export function countOccupants(seats: DiceSeat[]): number {
@@ -478,32 +645,21 @@ export function getMatchOpponentSeatIndex(state: DiceGameState, fromSeatIndex: n
   return null;
 }
 
-export function isActiveMatchTarget(state: DiceGameState, targetId: string): boolean {
-  if (!state.activeMatch) return false;
-  for (const idx of [state.activeMatch.holderSeatIndex, state.activeMatch.opponentSeatIndex]) {
-    const occ = state.seats.find((s) => s.seatIndex === idx)?.occupant;
-    if (!occ) continue;
-    if (occ.type === 'USER' && occ.userId === targetId) return true;
-    if (occ.type === 'BOT' && (occ.botId === targetId || `player_${occ.botId}` === targetId)) return true;
-  }
+export function isTigerTargetId(_state: DiceGameState, _targetId: string): boolean {
   return false;
 }
 
-export function isTigerTargetId(state: DiceGameState, targetId: string): boolean {
-  return state.seats.some((s) => {
-    const occ = s.occupant;
-    if (occ?.type !== 'BOT') return false;
-    return occ.botId === targetId || `player_${occ.botId}` === targetId;
-  });
+export function assignPendingSideBetsToTiger(state: DiceGameState): string[] {
+  return assignPendingPeerBetsToSystem(state);
 }
 
-export function assignPendingSideBetsToTiger(state: DiceGameState): string[] {
+export function assignPendingPeerBetsToSystem(state: DiceGameState): string[] {
   const assigned: string[] = [];
   for (const sb of state.sideBets) {
     if (sb.status !== 'PENDING') continue;
-    const playerPart = sb.playerAcceptedAmount ?? 0;
-    sb.tigerLiability = roundMoney(sb.amount - playerPart);
-    sb.status = 'ACCEPTED';
+    const counterpartyId = getPeerBetCounterpartyId(sb);
+    const playerPart = getPeerBetAcceptedAmount(sb);
+    finalizePeerBetAcceptance(sb, counterpartyId, playerPart);
     assigned.push(sb.id);
   }
   return assigned;
@@ -540,12 +696,33 @@ export function assignSeat(seats: DiceSeat[], occupant: DiceSeat['occupant']): D
   return next;
 }
 
-export function removeUserFromSeats(seats: DiceSeat[], userId: string): DiceSeat[] {
-  return seats.map((s) =>
-    s.occupant?.type === 'USER' && s.occupant.userId === userId
-      ? { ...s, occupant: null }
-      : { ...s, occupant: s.occupant ? { ...s.occupant } : null },
-  );
+/** Place a real user in the next join-order chair, replacing a filler bot. Never occupies Shoot. */
+export function assignRealPlayerSeat(seats: DiceSeat[], occupant: DiceOccupant): DiceSeat[] {
+  const next = seats.map((s) => ({ ...s, occupant: s.occupant ? { ...s.occupant } : null }));
+  for (const idx of DICE_JOIN_ORDER) {
+    const seat = next.find((s) => s.seatIndex === idx);
+    if (!seat) continue;
+    if (!seat.occupant || isFillerBot(seat.occupant)) {
+      seat.occupant = { ...occupant };
+      return next;
+    }
+  }
+  return next;
+}
+
+export function removeUserFromSeats(
+  seats: DiceSeat[],
+  userId: string,
+  botName = DEFAULT_DICE_CONFIG.botName,
+): DiceSeat[] {
+  return seats.map((s) => {
+    if (s.occupant?.type === 'USER' && s.occupant.userId === userId) {
+      const occupant =
+        s.seatIndex === DICE_SEAT.SHOOT ? shootOccupant(botName) : fillerOccupant(s.seatIndex);
+      return { ...s, occupant };
+    }
+    return { ...s, occupant: s.occupant ? { ...s.occupant } : null };
+  });
 }
 
 export function createInitialState(
@@ -563,6 +740,8 @@ export function createInitialState(
     acceptedParticipantIds: [],
     opponentMatchWindowEndsAt: null,
     sideBetWindowEndsAt: null,
+    interRoundPauseEndsAt: null,
+    diceHandoffEndsAt: null,
     finalLockEndsAt: null,
     phaseTimerId: null,
     mainBet: null,
@@ -572,6 +751,7 @@ export function createInitialState(
     config,
     sideBets: [],
     lastWinnerSeatIndex: null,
+    lastHolderStakeAmount: null,
     rollerSeatIndex: null,
     forcedDice: null,
     turnStartedAt: null,

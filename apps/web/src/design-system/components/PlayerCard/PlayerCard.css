@@ -25,7 +25,7 @@ button.ds-player-card:hover {
 
 .ds-player-card--highlight {
   border-color: var(--ds-border-gold);
-  background: rgba(245, 200, 66, 0.04);
+  background: rgba(255, 198, 41, 0.04);
 }
 
 .ds-player-card__info {

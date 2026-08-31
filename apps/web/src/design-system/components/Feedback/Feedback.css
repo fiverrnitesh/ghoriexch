@@ -83,7 +83,7 @@
 }
 
 .ds-feedback__retry:hover {
-  background: rgba(245, 200, 66, 0.08);
+  background: rgba(255, 198, 41, 0.08);
 }
 
 @keyframes ds-spin {

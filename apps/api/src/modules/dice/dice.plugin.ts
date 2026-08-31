@@ -5,7 +5,6 @@ import {
   DEFAULT_DICE_CONFIG,
   createInitialState,
   DICE_ACTIONS,
-  getActiveRollerActorId,
   seatTigerBot,
   startTurnTimer,
   sanitizePublicDiceState,
@@ -138,31 +137,6 @@ async function runBotTurn(
     emitPublicGameEvent(sessionId, acceptInput.action, acceptResult.events as GameEngineEvent[]);
     return;
   }
-
-  const rollerId = getActiveRollerActorId(state);
-  const rollerSeat = state.seats.find((s) => {
-    const occ = s.occupant;
-    if (!occ) return false;
-    return occ.type === 'BOT' && (occ.botId === rollerId || rollerId === 'tiger');
-  });
-  if (
-    (state.phase === 'FINAL_LOCK' || state.phase === 'BETTING_LOCKED') &&
-    state.mainBet?.locked &&
-    rollerSeat?.occupant?.type === 'BOT'
-  ) {
-    const botId = rollerSeat.occupant.botId ?? 'tiger';
-    const rollInput = {
-      sessionId,
-      userId: botId,
-      action: DICE_ACTIONS.ROLL_DICE,
-      payload: { botAction: true },
-    };
-    const rollResult = await diceGameEngine.processAction(rollInput);
-    await saveState(sessionId);
-    await diceService.handleEngineEvents(session, rollResult.events as GameEngineEvent[], rollInput);
-    await syncEngineFromDb(sessionId);
-    emitPublicGameEvent(sessionId, rollInput.action, rollResult.events as GameEngineEvent[]);
-  }
 }
 
 async function processDiceAction(
@@ -245,7 +219,7 @@ export function createDicePlugin(): GamePlugin {
     async joinSession(input) {
       await loadState(input.sessionId);
       const user = await prisma.user.findUnique({ where: { id: input.userId } });
-      await diceGameEngine.joinSession(input);
+      const joined = await diceGameEngine.joinSession(input);
 
       const state = diceGameEngine.getInternalState(input.sessionId)!;
       if (user) {
@@ -274,7 +248,7 @@ export function createDicePlugin(): GamePlugin {
         events: [],
       });
 
-      return { playerState: { joined: true } };
+      return { playerState: { joined: true, seatIndex: joined.playerState.seatIndex } };
     },
 
     async leaveSession(input) {
@@ -295,6 +269,7 @@ export function createDicePlugin(): GamePlugin {
 
     async getState(sessionId) {
       await loadState(sessionId);
+      await saveState(sessionId);
       scheduleAllTimers(sessionId);
       return diceGameEngine.getState(sessionId);
     },

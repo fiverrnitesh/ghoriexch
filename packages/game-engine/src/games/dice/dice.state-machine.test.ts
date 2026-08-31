@@ -101,19 +101,17 @@ describe('Dice state machine — main bet (15s)', () => {
   });
 });
 
-describe('Dice state machine — backing bets (15s) and acceptance (10s)', () => {
-  it('side bet only during BETTING after main bet', async () => {
+describe('Dice state machine — peer bets (30s unified window)', () => {
+  it('peer bet allowed during BETTING before main bet', async () => {
     const { engine, sessionId } = buildTable(3);
     const now = Date.parse('2026-08-16T12:00:00.000Z');
-    await assert.rejects(
-      () => engine.processAction({
-        sessionId,
-        userId: 'u1',
-        action: DICE_ACTIONS.REQUEST_SIDE_BET,
-        payload: { targetUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_early', nowMs: now },
-      }),
-      /Main bet required|Side betting not open/,
-    );
+    await engine.processAction({
+      sessionId,
+      userId: 'u1',
+      action: DICE_ACTIONS.REQUEST_SIDE_BET,
+      payload: { counterpartyUserId: 'u2', prediction: 'WIN', amount: 50, sideBetId: 'sb_early', nowMs: now },
+    });
+    assert.equal(engine.getInternalState(sessionId)!.sideBets[0]!.status, 'PENDING');
     await engine.processAction({
       sessionId,
       userId: 'u0',
@@ -124,12 +122,12 @@ describe('Dice state machine — backing bets (15s) and acceptance (10s)', () =>
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_ok', nowMs: now },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 50, sideBetId: 'sb_ok', nowMs: now },
     });
-    assert.equal(engine.getInternalState(sessionId)!.sideBets[0]!.status, 'PENDING');
+    assert.equal(engine.getInternalState(sessionId)!.sideBets[1]!.status, 'PENDING');
   });
 
-  it('target must be active match player', async () => {
+  it('rejects peer bet with self as counterparty', async () => {
     const { engine, sessionId } = buildTable(4);
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u3', 100);
     await assert.rejects(
@@ -137,13 +135,13 @@ describe('Dice state machine — backing bets (15s) and acceptance (10s)', () =>
         sessionId,
         userId: 'u1',
         action: DICE_ACTIONS.REQUEST_SIDE_BET,
-        payload: { targetUserId: 'u1', prediction: 'WIN', amount: 50, sideBetId: 'sb_bad_target' },
+        payload: { counterpartyUserId: 'u1', prediction: 'WIN', amount: 50, sideBetId: 'sb_bad_target' },
       }),
-      /active player/,
+      /yourself/,
     );
   });
 
-  it('pending side bets assigned to TIGER when acceptance window closes', async () => {
+  it('pending peer bets system-accepted when betting window closes', async () => {
     const { engine, sessionId } = buildTable(3);
     const now = Date.parse('2026-08-16T12:00:00.000Z');
     await placeAndConfirmMainBet(engine, sessionId, 'u0', 'u2', 100, 'ODD', now);
@@ -151,28 +149,13 @@ describe('Dice state machine — backing bets (15s) and acceptance (10s)', () =>
       sessionId,
       userId: 'u1',
       action: DICE_ACTIONS.REQUEST_SIDE_BET,
-      payload: { targetUserId: 'u0', prediction: 'WIN', amount: 25, sideBetId: 'sb_pending', nowMs: now },
+      payload: { counterpartyUserId: 'u0', prediction: 'WIN', amount: 25, sideBetId: 'sb_pending', nowMs: now },
     });
-    const st = engine.getInternalState(sessionId)!;
-    const timerId = st.turnTimerId!;
-    await engine.processAction({
-      sessionId,
-      userId: 'system',
-      action: DICE_ACTIONS.TURN_TIMEOUT,
-      payload: { turnTimerId: timerId, systemTimeout: true, nowMs: Date.parse(st.turnDeadlineAt!) + 1 },
-    });
-    const afterBet = engine.getInternalState(sessionId)!;
-    assert.equal(afterBet.phase, 'SIDE_BETTING');
-    const acceptTimer = afterBet.phaseTimerId!;
-    await engine.processAction({
-      sessionId,
-      userId: 'system',
-      action: DICE_ACTIONS.PHASE_TIMEOUT,
-      payload: { phaseTimerId: acceptTimer, systemTimeout: true, nowMs: Date.parse(afterBet.sideBetWindowEndsAt!) + 1 },
-    });
-    assert.equal(engine.getInternalState(sessionId)!.phase, 'FINAL_LOCK');
-    assert.equal(engine.getInternalState(sessionId)!.sideBets[0]!.status, 'ACCEPTED');
-    assert.equal(engine.getInternalState(sessionId)!.sideBets[0]!.tigerLiability, 25);
+    engine.expirePendingSideBets(sessionId);
+    const sb = engine.getInternalState(sessionId)!.sideBets[0]!;
+    assert.equal(sb.status, 'ACCEPTED');
+    assert.equal(sb.systemLiability, 25);
+    assert.equal(sb.displayAcceptedByUserId, 'u0');
   });
 });
 
@@ -188,7 +171,7 @@ describe('Dice state machine — roll ready (5s)', () => {
         action: DICE_ACTIONS.REQUEST_SIDE_BET,
         payload: { targetUserId: 'u0', prediction: 'WIN', amount: 10, sideBetId: 'sb_lock' },
       }),
-      /Side betting not open/,
+      /Betting not open|Peer bet/,
     );
   });
 

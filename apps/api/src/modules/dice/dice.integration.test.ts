@@ -350,27 +350,29 @@ describe('Dice Postgres integration', { skip: !canRun ? 'DATABASE_URL not set' :
     assert.ok(getTurnRemainingMs(reloaded) > 0);
   });
 
-  it('timeout advances game without financial settlement when no bet placed', async () => {
+  it('timeout auto-places main bet and opens FINAL_LOCK when no bet placed', async () => {
     resetTurnTimerSchedulerForTests();
     const playerA = await getUser('player1@games.local');
     const playerB = await getUser('neha@games.local');
     const session = await setupHumanVsHumanSession(playerA.id, playerB.id);
     const before = await loadSessionState(session.id);
     const timerId = before.turnTimerId!;
-    const holderBefore = before.activeMatch!.holderSeatIndex;
     before.turnDeadlineAt = new Date(Date.now() - 1000).toISOString();
     diceGameEngine.loadState(session.id, before);
     await prisma.gameSession.update({ where: { id: session.id }, data: { state: before as object } });
 
     await handleTurnTimeout(session.id, timerId);
     const after = await loadSessionState(session.id);
-    assert.notEqual(after.activeMatch!.holderSeatIndex, holderBefore);
-    assert.equal(after.mainBet, null);
+    assert.equal(after.phase, 'DICE_HANDOFF');
+    await advancePhaseTimeout(session.id);
+    const afterHandoff = await loadSessionState(session.id);
+    assert.equal(afterHandoff.phase, 'FINAL_LOCK');
+    assert.equal(afterHandoff.mainBet?.amount, afterHandoff.config.minBet);
+    assert.equal(afterHandoff.mainBet?.locked, true);
     assert.equal(await prisma.bet.count({ where: { sessionId: session.id } }), 0);
-    assert.equal(await prisma.diceRound.count({ where: { sessionId: session.id } }), 0);
   });
 
-  it('turn timeout with a main bet opens SIDE_BETTING and arms the phase timer', async () => {
+  it('turn timeout with a main bet closes into FINAL_LOCK then rolls', async () => {
     resetTurnTimerSchedulerForTests();
     const playerA = await getUser('player1@games.local');
     const playerB = await getUser('rahul@games.local');
@@ -383,7 +385,7 @@ describe('Dice Postgres integration', { skip: !canRun ? 'DATABASE_URL not set' :
     await persistEngineAction(session.id, {
       userId: holderId,
       action: DICE_ACTIONS.PLACE_MAIN_BET,
-      payload: { amount: 100, choice: 'EVEN', idempotencyKey: `it-side-${Date.now()}` },
+      payload: { amount: 100, choice: 'EVEN', idempotencyKey: `it-bet-close-${Date.now()}` },
     });
 
     const armed = await loadSessionState(session.id);
@@ -392,10 +394,20 @@ describe('Dice Postgres integration', { skip: !canRun ? 'DATABASE_URL not set' :
     await prisma.gameSession.update({ where: { id: session.id }, data: { state: armed as object } });
 
     await handleTurnTimeout(session.id, timerId);
+    const afterTimeout = await loadSessionState(session.id);
+    assert.equal(afterTimeout.phase, 'DICE_HANDOFF');
+    await advancePhaseTimeout(session.id);
+    const afterHandoff = await loadSessionState(session.id);
+    assert.equal(afterHandoff.phase, 'FINAL_LOCK');
+    assert.ok(afterHandoff.finalLockEndsAt);
+    assert.equal(afterTimeout.mainBet?.locked, true);
+
+    await advancePhaseTimeout(session.id);
     const after = await loadSessionState(session.id);
-    assert.equal(after.phase, 'SIDE_BETTING');
-    assert.ok(after.sideBetWindowEndsAt);
+    assert.equal(after.phase, 'INTER_ROUND_PAUSE');
+    assert.ok(after.interRoundPauseEndsAt);
     assert.ok(after.phaseTimerId);
-    assert.equal(after.mainBet?.locked, true);
+    assert.equal(after.mainBet, null);
+    assert.ok(after.dice == null);
   });
 });

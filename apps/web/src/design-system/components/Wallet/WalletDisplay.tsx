@@ -67,8 +67,10 @@ export interface BalanceBadgeProps {
   onClick?: () => void;
 }
 
-export function BalanceBadge({ amount, currency = 'USD', variant = 'gold', size = 'md', onClick }: BalanceBadgeProps) {
-  const symbol = currency === 'USD' ? '$' : currency;
+export function BalanceBadge({ amount, currency = 'PKR', variant = 'gold', size = 'md', onClick }: BalanceBadgeProps) {
+  const isSandbox = amount.startsWith('~');
+  const cleanAmount = isSandbox ? amount.slice(1) : amount;
+  const symbol = currency === 'PKR' ? '₨ ' : currency === 'USD' ? '$' : currency === 'INR' ? '₹ ' : `${currency} `;
   const Tag = onClick ? 'button' : 'span';
 
   return (
@@ -78,7 +80,7 @@ export function BalanceBadge({ amount, currency = 'USD', variant = 'gold', size 
       onClick={onClick}
     >
       <span className="ds-balance-badge__icon" aria-hidden="true">◆</span>
-      <span className="ds-balance-badge__amount">{symbol}{amount}</span>
+      <span className="ds-balance-badge__amount">{isSandbox ? '~' : ''}{symbol}{cleanAmount}</span>
     </Tag>
   );
 }

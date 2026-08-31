@@ -5,7 +5,7 @@ import './SettlementPanel.css';
 export function SettlementPanel({
   result,
   winnerName,
-  currency = 'USD',
+  currency = 'PKR',
 }: {
   result: DiceRoundResult;
   winnerName: string;

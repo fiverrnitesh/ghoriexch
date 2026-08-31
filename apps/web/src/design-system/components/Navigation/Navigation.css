@@ -27,7 +27,7 @@
 
 .ds-nav__link--active {
   color: var(--ds-gold);
-  background: rgba(245, 200, 66, 0.08);
+  background: rgba(255, 198, 41, 0.08);
   box-shadow: inset 0 -2px 0 var(--ds-gold-dim);
 }
 

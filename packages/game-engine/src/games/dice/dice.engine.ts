@@ -9,22 +9,23 @@ import type {
 } from '../../types/game-definition.js';
 import { DEFAULT_DICE_CONFIG, DICE_ACTIONS } from './dice.constants.js';
 import {
-  assignSeat,
+  assignRealPlayerSeat,
   buildInitialMatch,
-  countOccupants,
   countRealUsers,
   createInitialState,
-  assignPendingSideBetsToTiger,
+  assignPendingPeerBetsToSystem,
   evaluateMainBet,
   generateRoundId,
   getActiveHolderActorId,
   getActiveOpponentActorId,
   getActiveRollerActorId,
   getMatchOpponentSeatIndex,
-  isEligibleSideBettor,
+  isEligiblePeerBettor,
   isAcceptedParticipant,
-  isActiveMatchTarget,
-  isTigerTargetId,
+  isFillerCounterpartyId,
+  isSeatedCounterparty,
+  finalizePeerBetAcceptance,
+  getPeerBetCounterpartyId,
   removeUserFromSeats,
   resolveMainBetChoice,
   rollDicePair,
@@ -32,13 +33,15 @@ import {
   rotateAfterLoss,
   rotateAfterWin,
   roundMoney,
+  realPlayerCap,
   seatTigerBot,
 } from './dice.logic.js';
 import {
   clearPhaseTimer,
   isPhaseExpired,
   startFinalLockWindow,
-  startSideBetWindow,
+  startDiceHandoffWindow,
+  startInterRoundPause,
 } from './dice.phase-timer.js';
 import {
   assertTurnNotExpired,
@@ -57,7 +60,7 @@ export class DiceGameEngine extends BaseGameEngine {
     version: '1.0.0',
     status: 'ACTIVE',
     minPlayers: 2,
-    maxPlayers: 8,
+    maxPlayers: 7,
     category: 'popular',
     description: 'Custom dual-dice ODD/EVEN table game',
   };
@@ -124,13 +127,16 @@ export class DiceGameEngine extends BaseGameEngine {
     );
 
     if (!alreadySeated) {
-      if (countRealUsers(state.seats) >= state.config.maxPlayers) throw new Error('Table full');
-      if (countOccupants(state.seats) >= state.maxSeats) throw new Error('Table full');
-      state.seats = assignSeat(state.seats, {
+      if (countRealUsers(state.seats) >= realPlayerCap(state.config.maxPlayers)) {
+        throw new Error('Table full');
+      }
+      const before = countRealUsers(state.seats);
+      state.seats = assignRealPlayerSeat(state.seats, {
         type: 'USER',
         userId: input.userId,
         name: input.userId,
       });
+      if (countRealUsers(state.seats) === before) throw new Error('Table full');
       if (state.gameMode !== 'FRIENDS' && !state.acceptedParticipantIds.includes(input.userId)) {
         state.acceptedParticipantIds.push(input.userId);
       }
@@ -138,19 +144,21 @@ export class DiceGameEngine extends BaseGameEngine {
 
     seatTigerBot(state);
 
-    if (countOccupants(state.seats) >= state.config.minEffectivePopulation && !state.activeMatch) {
+    if (countRealUsers(state.seats) >= 1 && !state.activeMatch) {
       this.beginNewRound(state, Date.now());
     }
 
-    return { playerState: { seatIndex: input.seatIndex ?? 0 } };
+    const seated = state.seats.find((s) => s.occupant?.type === 'USER' && s.occupant.userId === input.userId);
+    return { playerState: { seatIndex: seated?.seatIndex ?? input.seatIndex ?? 0 } };
   }
 
   async leaveSession(input: GameSessionLeaveInput): Promise<void> {
     const state = this.states.get(input.sessionId);
     if (!state) return;
-    state.seats = removeUserFromSeats(state.seats, input.userId);
+    state.seats = removeUserFromSeats(state.seats, input.userId, state.config.botName);
+    seatTigerBot(state);
     state.acceptedParticipantIds = state.acceptedParticipantIds.filter((id) => id !== input.userId);
-    if (countOccupants(state.seats) < state.config.minEffectivePopulation) {
+    if (countRealUsers(state.seats) < 1) {
       state.phase = 'WAITING_FOR_PLAYERS';
       state.activeMatch = null;
       clearTurnTimer(state);
@@ -193,6 +201,7 @@ export class DiceGameEngine extends BaseGameEngine {
           status: 'PENDING',
           placedAt: new Date(nowMs).toISOString(),
         };
+        state.lastHolderStakeAmount = amount;
         events.push(this.createEvent('dice:main_bet_placed', { mainBet: state.mainBet }));
         this.confirmTigerMainMatch(state, events, nowMs, { stayInBetting: true });
         break;
@@ -223,10 +232,8 @@ export class DiceGameEngine extends BaseGameEngine {
         state.mainBet.opponentUserId = opponentSeat?.occupant?.type === 'USER' ? opponentSeat.occupant.userId : undefined;
         state.mainBet.opponentBotId = opponentSeat?.occupant?.type === 'BOT' ? opponentSeat.occupant.botId : undefined;
         state.mainBet.locked = true;
-        state.phase = 'MAIN_MATCH_CONFIRMED';
+        state.phase = 'BETTING';
         events.push(this.createEvent('dice:main_match_confirmed', { mainBet: state.mainBet }));
-        startSideBetWindow(state, state.config.sideBetWindowSeconds, nowMs);
-        events.push(this.createEvent('dice:betting_open', { phase: 'SIDE_BETTING' }));
         break;
       }
 
@@ -269,89 +276,85 @@ export class DiceGameEngine extends BaseGameEngine {
           return { state: state as unknown as Record<string, unknown>, events: [] };
         }
 
-        if (state.mainBet) {
-          this.openAcceptanceWindow(state, events, nowMs);
-          break;
+        const hadMainBet = !!state.mainBet;
+        if (!hadMainBet) {
+          this.autoPlaceMainBetIfMissing(state, events, nowMs);
         }
-
-        const timedOutPlayerId = getActiveHolderActorId(state);
-        const timedOutSeatIndex = state.activeMatch!.holderSeatIndex;
-        state.activeMatch = rotateAfterLoss(state);
-        if (!state.activeMatch) throw new Error('Unable to rotate after turn timeout');
-        this.beginHolderTurn(state, nowMs);
-        events.push(this.createEvent('dice:turn_timeout', {
-          sessionId: input.sessionId,
-          roundId: state.roundId,
-          timedOutPlayerId,
-          timedOutSeatIndex,
-          nextHolderSeatIndex: state.activeMatch.holderSeatIndex,
-          reason: 'FORFEIT',
-          phase: state.phase,
-        }));
-        events.push(this.createEvent('dice:rotation', { activeMatch: state.activeMatch, reason: 'turn_timeout' }));
+        this.closeBettingWindowAndRoll(state, events, nowMs);
+        if (!hadMainBet) {
+          events.push(this.createEvent('dice:turn_timeout', {
+            sessionId: input.sessionId,
+            roundId: state.roundId,
+            reason: 'AUTO_MAIN_BET',
+            phase: state.phase,
+          }));
+        }
         break;
       }
 
       case DICE_ACTIONS.REQUEST_SIDE_BET: {
-        const { targetUserId, prediction, amount, sideBetId } = input.payload as {
-          targetUserId: string;
+        const payload = input.payload as {
+          targetUserId?: string;
+          counterpartyUserId?: string;
           prediction: 'WIN' | 'LOSS';
           amount: number;
           sideBetId: string;
         };
+        const counterpartyUserId = String(payload.counterpartyUserId ?? payload.targetUserId ?? '');
         if (!state.activeMatch) throw new Error('No active match');
-        if (state.phase !== 'BETTING' && state.phase !== 'SIDE_BETTING') {
-          throw new Error('Side betting not open');
+        if (state.phase !== 'BETTING') throw new Error('Betting not open');
+        if (!isEligiblePeerBettor(state, input.userId)) {
+          throw new Error('Active players cannot place Haar/Zeet — use main bet only');
         }
-        if (!state.mainBet) throw new Error('Main bet required');
-        if (!isEligibleSideBettor(state, input.userId)) throw new Error('Only accepted spectators can side bet');
-        if (!isActiveMatchTarget(state, targetUserId)) throw new Error('Side bet target must be an active player');
-        if (state.sideBets.some((s) => s.id === sideBetId)) throw new Error('Duplicate side bet id');
-        if (typeof amount !== 'number' || amount < state.config.minBet || amount > state.config.maxBet) {
-          throw new Error(`Side bet must be between ${state.config.minBet} and ${state.config.maxBet}`);
+        if (!isSeatedCounterparty(state, counterpartyUserId)) {
+          throw new Error('Counterparty must be a seated player');
         }
-        if (prediction !== 'WIN' && prediction !== 'LOSS') throw new Error('Invalid side bet prediction');
-        const windowEnd = state.phase === 'SIDE_BETTING' ? state.sideBetWindowEndsAt : state.turnDeadlineAt;
-        if (windowEnd && nowMs > new Date(windowEnd).getTime()) {
-          throw new Error('Side bet window closed');
+        if (counterpartyUserId === input.userId) throw new Error('Cannot bet with yourself');
+        if (state.sideBets.some((s) => s.id === payload.sideBetId)) throw new Error('Duplicate peer bet id');
+        if (typeof payload.amount !== 'number' || payload.amount < state.config.minBet || payload.amount > state.config.maxBet) {
+          throw new Error(`Peer bet must be between ${state.config.minBet} and ${state.config.maxBet}`);
+        }
+        if (payload.prediction !== 'WIN' && payload.prediction !== 'LOSS') throw new Error('Invalid prediction');
+        if (state.turnDeadlineAt && nowMs > new Date(state.turnDeadlineAt).getTime()) {
+          throw new Error('Betting window closed');
         }
         const sb: SideBetState = {
-          id: sideBetId,
+          id: payload.sideBetId,
           backerUserId: input.userId,
-          targetUserId,
-          prediction,
-          amount,
+          counterpartyUserId,
+          targetUserId: counterpartyUserId,
+          prediction: payload.prediction,
+          amount: payload.amount,
           status: 'PENDING',
-          expiresAt: windowEnd
-            ?? state.sideBetWindowEndsAt
-            ?? new Date(nowMs + state.config.sideBetWindowSeconds * 1000).toISOString(),
+          expiresAt: state.turnDeadlineAt
+            ?? new Date(nowMs + state.config.turnTimeoutSeconds * 1000).toISOString(),
         };
-        if (isTigerTargetId(state, targetUserId)) {
-          sb.status = 'ACCEPTED';
-          sb.tigerLiability = amount;
-          sb.playerAcceptedAmount = 0;
-        }
         state.sideBets.push(sb);
-        events.push(this.createEvent('dice:side_bet_request', { sideBetId, targetUserId }));
-        if (sb.status === 'ACCEPTED') {
-          events.push(this.createEvent('dice:side_bet_accepted', { sideBetId, acceptedAmount: 0, tigerLiability: amount }));
+        events.push(this.createEvent('dice:side_bet_request', { sideBetId: sb.id, counterpartyUserId }));
+        if (isFillerCounterpartyId(state, counterpartyUserId)) {
+          finalizePeerBetAcceptance(sb, counterpartyUserId, 0);
+          events.push(this.createEvent('dice:side_bet_accepted', {
+            sideBetId: sb.id,
+            acceptedAmount: 0,
+            counterpartyUserId,
+            displayAcceptedByUserId: counterpartyUserId,
+          }));
         }
         break;
       }
 
       case DICE_ACTIONS.ACCEPT_SIDE_BET: {
-        if (state.phase !== 'SIDE_BETTING' && state.phase !== 'BETTING') {
-          throw new Error('Side bet acceptance closed');
-        }
+        if (state.phase !== 'BETTING') throw new Error('Peer bet acceptance closed');
         const { sideBetId, amount, availableBalance } = input.payload as {
           sideBetId: string;
           amount?: number;
           availableBalance?: number;
         };
         const sb = state.sideBets.find((s) => s.id === sideBetId);
-        if (!sb) throw new Error('Side bet not found');
-        if (sb.status !== 'PENDING') throw new Error('Side bet already resolved');
-        if (sb.targetUserId !== input.userId) throw new Error('Only target player can accept');
+        if (!sb) throw new Error('Peer bet not found');
+        if (sb.status !== 'PENDING') throw new Error('Peer bet already resolved');
+        const counterpartyId = getPeerBetCounterpartyId(sb);
+        if (counterpartyId !== input.userId) throw new Error('Only counterparty can accept');
 
         const requested = typeof amount === 'number' ? amount : sb.amount;
         if (typeof requested !== 'number' || requested < 0) throw new Error('Invalid accept amount');
@@ -359,36 +362,30 @@ export class DiceGameEngine extends BaseGameEngine {
 
         const cap = typeof availableBalance === 'number' ? Math.max(0, availableBalance) : requested;
         const playerPart = roundMoney(Math.min(requested, cap, sb.amount));
-        const tigerPart = roundMoney(sb.amount - playerPart);
-
-        sb.playerAcceptedAmount = playerPart;
-        sb.playerLiabilityUserId = playerPart > 0 ? input.userId : undefined;
-        sb.tigerLiability = tigerPart;
-        sb.status = 'ACCEPTED';
+        finalizePeerBetAcceptance(sb, counterpartyId, playerPart);
         events.push(this.createEvent('dice:side_bet_accepted', {
           sideBetId,
           acceptedAmount: playerPart,
-          tigerLiability: tigerPart,
+          counterpartyUserId: counterpartyId,
+          displayAcceptedByUserId: counterpartyId,
         }));
         break;
       }
 
       case DICE_ACTIONS.REJECT_SIDE_BET: {
-        if (state.phase !== 'SIDE_BETTING' && state.phase !== 'BETTING') {
-          throw new Error('Side bet rejection closed');
-        }
+        if (state.phase !== 'BETTING') throw new Error('Peer bet rejection closed');
         const { sideBetId } = input.payload as { sideBetId: string };
         const sb = state.sideBets.find((s) => s.id === sideBetId);
-        if (!sb) throw new Error('Side bet not found');
-        if (sb.status !== 'PENDING') throw new Error('Side bet already resolved');
-        if (sb.targetUserId !== input.userId) throw new Error('Only target player can reject');
-        sb.playerAcceptedAmount = 0;
-        sb.tigerLiability = sb.amount;
-        sb.status = 'ACCEPTED';
+        if (!sb) throw new Error('Peer bet not found');
+        if (sb.status !== 'PENDING') throw new Error('Peer bet already resolved');
+        const counterpartyId = getPeerBetCounterpartyId(sb);
+        if (counterpartyId !== input.userId) throw new Error('Only counterparty can reject');
+        finalizePeerBetAcceptance(sb, counterpartyId, 0);
         events.push(this.createEvent('dice:side_bet_accepted', {
           sideBetId,
           acceptedAmount: 0,
-          tigerLiability: sb.amount,
+          counterpartyUserId: counterpartyId,
+          displayAcceptedByUserId: counterpartyId,
         }));
         break;
       }
@@ -408,13 +405,15 @@ export class DiceGameEngine extends BaseGameEngine {
   expirePendingSideBets(sessionId: string) {
     const state = this.states.get(sessionId);
     if (!state) return [];
-    const assigned = assignPendingSideBetsToTiger(state);
+    const assigned = assignPendingPeerBetsToSystem(state);
     return assigned.map((sideBetId) => {
       const sb = state.sideBets.find((s) => s.id === sideBetId);
+      const counterpartyId = sb ? getPeerBetCounterpartyId(sb) : '';
       return this.createEvent('dice:side_bet_accepted', {
         sideBetId,
-        acceptedAmount: sb?.playerAcceptedAmount ?? 0,
-        tigerLiability: sb?.tigerLiability ?? sb?.amount ?? 0,
+        acceptedAmount: sb?.counterpartyAcceptedAmount ?? sb?.playerAcceptedAmount ?? 0,
+        counterpartyUserId: counterpartyId,
+        displayAcceptedByUserId: counterpartyId,
       });
     });
   }
@@ -465,8 +464,21 @@ export class DiceGameEngine extends BaseGameEngine {
   }
 
   private beginNewRound(state: DiceGameState, nowMs: number) {
+    if (countRealUsers(state.seats) < 1) {
+      state.phase = 'WAITING_FOR_PLAYERS';
+      state.activeMatch = null;
+      clearTurnTimer(state);
+      clearPhaseTimer(state);
+      return;
+    }
     const isFirstRound = state.roundNumber === 0;
     state.activeMatch = buildInitialMatch(state.seats, isFirstRound ? state.roomHostUserId : null);
+    if (!state.activeMatch) {
+      state.phase = 'WAITING_FOR_PLAYERS';
+      clearTurnTimer(state);
+      clearPhaseTimer(state);
+      return;
+    }
     state.roundNumber += 1;
     state.roundId = generateRoundId();
     state.mainBet = null;
@@ -479,41 +491,98 @@ export class DiceGameEngine extends BaseGameEngine {
   private beginHolderTurn(state: DiceGameState, nowMs: number) {
     state.phase = 'BETTING';
     state.sideBetWindowEndsAt = null;
+    state.interRoundPauseEndsAt = null;
     state.opponentMatchWindowEndsAt = null;
+    state.diceHandoffEndsAt = null;
     state.finalLockEndsAt = null;
     state.rollerSeatIndex = state.activeMatch?.holderSeatIndex ?? null;
     startTurnTimer(state, nowMs);
+    state.sideBetWindowEndsAt = state.turnDeadlineAt;
   }
 
-  private openAcceptanceWindow(state: DiceGameState, events: GameEngineEvent[], nowMs: number) {
+  private autoPlaceMainBetIfMissing(state: DiceGameState, events: GameEngineEvent[], nowMs: number) {
+    if (state.mainBet || !state.activeMatch) return;
+    const holderId = getActiveHolderActorId(state);
+    if (!holderId) return;
+    const amount = Math.min(
+      state.config.maxBet,
+      Math.max(state.config.minBet, state.lastHolderStakeAmount ?? state.config.minBet),
+    );
+    state.mainBet = {
+      userId: holderId,
+      activePlayerUserId: holderId,
+      amount,
+      choice: 'ODD',
+      locked: false,
+      holderLocked: true,
+      roundId: state.roundId,
+      status: 'PENDING',
+      placedAt: new Date(nowMs).toISOString(),
+    };
+    events.push(this.createEvent('dice:main_bet_placed', { mainBet: state.mainBet, auto: true }));
+    this.confirmTigerMainMatch(state, events, nowMs, { stayInBetting: true });
+  }
+
+  private closeBettingWindowAndRoll(state: DiceGameState, events: GameEngineEvent[], nowMs: number) {
     clearTurnTimer(state);
-    if (state.mainBet && !state.mainBet.opponentStake) {
+    for (const ev of this.expirePendingPeerBetsInternal(state)) events.push(ev);
+    if (!state.mainBet) {
+      this.autoPlaceMainBetIfMissing(state, events, nowMs);
+    }
+    if (state.mainBet && !state.mainBet.locked) {
       this.confirmTigerMainMatch(state, events, nowMs, { stayInBetting: true });
     }
-    const holderSeat = state.seats.find((s) => s.seatIndex === state.activeMatch?.holderSeatIndex);
-    if (holderSeat?.occupant?.type === 'BOT') {
-      this.assignUnmatchedToTigerAndLock(state, events, nowMs);
-      return;
-    }
-    startSideBetWindow(state, state.config.sideBetWindowSeconds, nowMs);
-    events.push(this.createEvent('dice:betting_open', { phase: 'SIDE_BETTING' }));
+    if (!state.mainBet?.locked) return;
+    this.beginDiceHandoff(state, events, nowMs, 'betting_window_closed');
   }
 
-  private assignUnmatchedToTigerAndLock(state: DiceGameState, events: GameEngineEvent[], nowMs: number) {
-    for (const ev of this.expirePendingSideBetsInternal(state)) events.push(ev);
-    if (state.mainBet) state.mainBet.locked = true;
+  private beginDiceHandoff(
+    state: DiceGameState,
+    events: GameEngineEvent[],
+    nowMs: number,
+    reason: string,
+  ) {
+    state.rollerSeatIndex = state.rollerSeatIndex ?? state.activeMatch!.holderSeatIndex;
+    const handoffSeconds = state.config.diceHandoffSeconds ?? 2;
+    startDiceHandoffWindow(state, handoffSeconds, nowMs);
+    events.push(this.createEvent('dice:pass_to_roller', {
+      rollerSeatIndex: state.rollerSeatIndex,
+      reason,
+    }));
+    events.push(this.createEvent('dice:betting_open', {
+      phase: 'DICE_HANDOFF',
+      reason,
+    }));
+  }
+
+  private beginFinalLock(
+    state: DiceGameState,
+    events: GameEngineEvent[],
+    nowMs: number,
+    reason = 'roll_window_open',
+  ) {
+    state.rollerSeatIndex = state.rollerSeatIndex ?? state.activeMatch!.holderSeatIndex;
     startFinalLockWindow(state, state.config.finalLockSeconds, nowMs);
-    events.push(this.createEvent('dice:betting_open', { phase: 'FINAL_LOCK' }));
+    events.push(this.createEvent('dice:betting_open', {
+      phase: 'FINAL_LOCK',
+      reason,
+    }));
   }
 
-  private expirePendingSideBetsInternal(state: DiceGameState) {
-    const assigned = assignPendingSideBetsToTiger(state);
+  private completeDiceHandoff(state: DiceGameState, events: GameEngineEvent[], nowMs: number) {
+    this.beginFinalLock(state, events, nowMs, 'handoff_complete');
+  }
+
+  private expirePendingPeerBetsInternal(state: DiceGameState) {
+    const assigned = assignPendingPeerBetsToSystem(state);
     return assigned.map((sideBetId) => {
       const sb = state.sideBets.find((s) => s.id === sideBetId);
+      const counterpartyId = sb ? getPeerBetCounterpartyId(sb) : '';
       return this.createEvent('dice:side_bet_accepted', {
         sideBetId,
-        acceptedAmount: sb?.playerAcceptedAmount ?? 0,
-        tigerLiability: sb?.tigerLiability ?? sb?.amount ?? 0,
+        acceptedAmount: sb?.counterpartyAcceptedAmount ?? sb?.playerAcceptedAmount ?? 0,
+        counterpartyUserId: counterpartyId,
+        displayAcceptedByUserId: counterpartyId,
       });
     });
   }
@@ -528,8 +597,7 @@ export class DiceGameEngine extends BaseGameEngine {
       const opponentSeat = state.seats.find((s) => s.seatIndex === state.activeMatch!.opponentSeatIndex);
       const isBotOpponent = opponentSeat?.occupant?.type === 'BOT';
       if (isBotOpponent && state.mainBet) {
-        this.confirmTigerMainMatch(state, events, nowMs, { stayInBetting: false });
-        this.openAcceptanceWindow(state, events, nowMs);
+        this.confirmTigerMainMatch(state, events, nowMs, { stayInBetting: true });
         return;
       }
       this.cancelUnmatchedMainBet(state, events, sessionId, nowMs);
@@ -537,7 +605,19 @@ export class DiceGameEngine extends BaseGameEngine {
     }
 
     if (state.phase === 'SIDE_BETTING') {
-      this.assignUnmatchedToTigerAndLock(state, events, nowMs);
+      this.closeBettingWindowAndRoll(state, events, nowMs);
+      return;
+    }
+
+    if (state.phase === 'INTER_ROUND_PAUSE') {
+      clearPhaseTimer(state);
+      this.beginHolderTurn(state, nowMs);
+      events.push(this.createEvent('dice:betting_open', { phase: 'BETTING' }));
+      return;
+    }
+
+    if (state.phase === 'DICE_HANDOFF') {
+      this.completeDiceHandoff(state, events, nowMs);
       return;
     }
 
@@ -560,7 +640,7 @@ export class DiceGameEngine extends BaseGameEngine {
     state.mainBet.status = 'MATCHED';
     state.mainBet.locked = true;
     if (!opts.stayInBetting) {
-      state.phase = 'MAIN_MATCH_CONFIRMED';
+      state.phase = 'BETTING';
     }
     events.push(this.createEvent('dice:main_match_confirmed', { mainBet: state.mainBet }));
   }
@@ -632,8 +712,7 @@ export class DiceGameEngine extends BaseGameEngine {
       const currentRoller = state.rollerSeatIndex ?? state.activeMatch!.holderSeatIndex;
       const nextRoller = getMatchOpponentSeatIndex(state, currentRoller);
       state.rollerSeatIndex = nextRoller ?? state.activeMatch!.opponentSeatIndex;
-      startFinalLockWindow(state, state.config.finalLockSeconds, nowMs);
-      events.push(this.createEvent('dice:betting_open', { phase: 'FINAL_LOCK', reason: 'no_result_pass' }));
+      this.beginDiceHandoff(state, events, nowMs, 'no_result_pass');
       return;
     }
 
@@ -661,7 +740,7 @@ export class DiceGameEngine extends BaseGameEngine {
       events.push(this.createEvent('dice:winner', { seatIndex: state.lastWinnerSeatIndex, keptDice: false }));
     }
 
-    state.phase = 'NEXT_MATCH';
+    state.phase = 'INTER_ROUND_PAUSE';
     state.mainBet = null;
     state.dice = null;
     state.sideBets = [];
@@ -669,8 +748,9 @@ export class DiceGameEngine extends BaseGameEngine {
     state.rollerSeatIndex = null;
     state.roundNumber += 1;
     state.roundId = generateRoundId();
-    this.beginHolderTurn(state, nowMs);
+    startInterRoundPause(state, state.config.interRoundPauseSeconds ?? 5, nowMs);
     events.push(this.createEvent('dice:rotation', { activeMatch: state.activeMatch }));
+    events.push(this.createEvent('dice:betting_open', { phase: 'INTER_ROUND_PAUSE' }));
   }
 }
 

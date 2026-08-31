@@ -52,7 +52,7 @@
 
 .ds-betting-chip--active {
   border-color: var(--ds-gold);
-  background: linear-gradient(145deg, rgba(245,200,66,0.2), rgba(139,0,32,0.15));
+  background: linear-gradient(145deg, rgba(255,198,41,0.2), rgba(139,0,32,0.15));
   box-shadow: var(--ds-shadow-glow-gold);
 }
 

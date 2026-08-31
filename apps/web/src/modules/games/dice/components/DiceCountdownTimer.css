@@ -26,13 +26,13 @@
 
 .dice-countdown__fill {
   fill: none;
-  stroke: #e8c547;
+  stroke: #FFC629;
   stroke-width: 5;
   stroke-linecap: round;
   stroke-dasharray: 264;
   stroke-dashoffset: calc(264 - (264 * var(--progress) / 100));
   transition: stroke-dashoffset 0.35s ease;
-  filter: drop-shadow(0 0 8px rgba(245, 200, 66, 0.5));
+  filter: drop-shadow(0 0 8px rgba(255, 198, 41, 0.5));
 }
 
 .dice-countdown__value {
@@ -43,8 +43,8 @@
   font-family: var(--ds-font-display);
   font-size: 1.35rem;
   font-weight: 800;
-  color: #f5d76e;
-  text-shadow: 0 0 14px rgba(245, 200, 66, 0.55);
+  color: #FFC629;
+  text-shadow: 0 0 14px rgba(255, 198, 41, 0.55);
 }
 
 .dice-countdown--turn .dice-countdown__value {
@@ -57,8 +57,8 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(245, 200, 66, 0.9);
-  text-shadow: 0 0 8px rgba(245, 200, 66, 0.25);
+  color: rgba(255, 198, 41, 0.9);
+  text-shadow: 0 0 8px rgba(255, 198, 41, 0.25);
 }
 
 .dice-countdown--closed .dice-countdown__label {

@@ -57,7 +57,7 @@ export class AuthService {
             balance: 0,
             availableBalance: 0,
             lockedBalance: 0,
-            currency: 'USD',
+            currency: 'PKR',
           },
         },
       },

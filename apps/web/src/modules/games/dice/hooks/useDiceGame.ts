@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { REALTIME_EVENTS } from '@games/shared';
 import { DICE_ACTIONS, type DieFace, type DiceRoundResult, type PlayerChoice } from '@games/game-engine/browser';
+import { getOccupantDisplayName } from '../utils/phaseLabels';
 import { api } from '../../../../lib/api-client';
 import {
   getRemainingSecondsFromDeadline,
@@ -16,6 +17,7 @@ const WS_URL = import.meta.env.DEV
 const FALLBACK_POLL_MS = 3_000;
 const RESULT_REVEAL_MS = 5000;
 const NO_RESULT_REVEAL_MS = 1400;
+const MIN_ROLL_ANIM_MS = 1500;
 
 export interface DiceDisplayResult {
   dice: [DieFace, DieFace];
@@ -44,10 +46,45 @@ export type DiceStatusBanner =
 type GameEvent = { type: string; payload?: Record<string, unknown> };
 
 type SideBetSnap = {
+  id?: string;
   backerUserId: string;
+  counterpartyUserId?: string;
+  targetUserId?: string;
   prediction: 'WIN' | 'LOSS';
   status: string;
+  amount?: number;
 };
+
+function evaluatePeerBetResult(
+  prediction: 'WIN' | 'LOSS',
+  mainOutcome: 'WIN' | 'LOSS',
+): 'WON' | 'LOST' {
+  const holderWon = mainOutcome === 'WIN';
+  const predictedWin = prediction === 'WIN';
+  return holderWon === predictedWin ? 'WON' : 'LOST';
+}
+
+function resolvePeerBetPersonalOutcome(
+  userId: string,
+  resultOutcome: 'WIN' | 'LOSS',
+  sideBets: SideBetSnap[],
+): 'WON' | 'LOST' | null {
+  const accepted = sideBets.filter((sb) => sb.status === 'ACCEPTED');
+  if (accepted.length === 0) return null;
+
+  const outcomes: Array<'WON' | 'LOST'> = [];
+  for (const sb of accepted) {
+    const counterpartyId = sb.counterpartyUserId ?? sb.targetUserId;
+    const backerResult = evaluatePeerBetResult(sb.prediction, resultOutcome);
+    if (sb.backerUserId === userId) {
+      outcomes.push(backerResult);
+    } else if (counterpartyId === userId) {
+      outcomes.push(backerResult === 'WON' ? 'LOST' : 'WON');
+    }
+  }
+  if (outcomes.length === 0) return null;
+  return outcomes.some((o) => o === 'WON') ? 'WON' : 'LOST';
+}
 
 function resolvePersonalOutcome(
   userId: string | undefined,
@@ -57,13 +94,29 @@ function resolvePersonalOutcome(
 ): 'WON' | 'LOST' | null {
   if (!userId || !resultOutcome || resultOutcome === 'NO_RESULT') return null;
   if (mainBetUserId === userId) return resultOutcome === 'WIN' ? 'WON' : 'LOST';
-  const mine = sideBets.filter(
-    (sb) => sb.backerUserId === userId && (sb.status === 'ACCEPTED' || sb.status === 'PENDING' || sb.status === 'WON' || sb.status === 'LOST'),
-  );
-  if (mine.length === 0) return null;
-  const holderWon = resultOutcome === 'WIN';
-  const won = mine.some((sb) => (sb.prediction === 'WIN') === holderWon);
-  return won ? 'WON' : 'LOST';
+  return resolvePeerBetPersonalOutcome(userId, resultOutcome, sideBets);
+}
+
+function resolveAcceptorDisplayName(
+  acceptorId: string,
+  st: {
+    seats?: Array<{
+      seatIndex: number;
+      occupant?: { type: string; userId?: string; botId?: string; name?: string } | null;
+    }>;
+  } | null,
+  playerMeta: Record<string, { displayName: string }>,
+): string {
+  const seat = st?.seats?.find((s) => {
+    const occ = s.occupant;
+    if (!occ) return false;
+    if (occ.type === 'USER' && occ.userId === acceptorId) return true;
+    if (occ.type === 'BOT' && (occ.botId === acceptorId || `player_${occ.botId}` === acceptorId)) return true;
+    return false;
+  });
+  if (seat) return getOccupantDisplayName(seat, playerMeta);
+  if (playerMeta[acceptorId]?.displayName) return playerMeta[acceptorId].displayName;
+  return acceptorId;
 }
 
 function resolveResultSeats(
@@ -119,6 +172,8 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
   const stateRef = useRef<Record<string, unknown> | null>(null);
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
+  const playerMetaRef = useRef(playerMeta);
+  playerMetaRef.current = playerMeta;
   stateRef.current = state;
 
   const clearResultTimer = () => {
@@ -149,14 +204,45 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
       setState(nextState);
     }
 
+    if (events.some((e) => e.type === 'dice:side_bet_accepted')) {
+      const accepted = events.find((e) => e.type === 'dice:side_bet_accepted');
+      const payload = accepted?.payload as {
+        displayAcceptedByUserId?: string;
+        counterpartyUserId?: string;
+      } | undefined;
+      const acceptorId = payload?.displayAcceptedByUserId ?? payload?.counterpartyUserId;
+      if (acceptorId) {
+        const st = (nextState ?? prev) as Parameters<typeof resolveAcceptorDisplayName>[1];
+        const name = resolveAcceptorDisplayName(acceptorId, st, playerMetaRef.current);
+        showBanner({ type: 'ROTATION', message: `Accepted by ${name}` }, 3000);
+      }
+    }
+
     if (events.some((e) => e.type === 'dice:turn_timeout')) {
-      showBanner({ type: 'TURN_TIMEOUT', message: 'Turn timeout — no bet placed. Rotating…' });
+      const reason = (events.find((e) => e.type === 'dice:turn_timeout')?.payload as { reason?: string } | undefined)?.reason;
+      showBanner({
+        type: 'TURN_TIMEOUT',
+        message: reason === 'AUTO_MAIN_BET'
+          ? 'Betting closed — auto bet placed, rolling…'
+          : 'Betting window closed…',
+      });
       setSettlementDisplay(null);
     }
 
+    if (events.some((e) => e.type === 'dice:pass_to_roller')) {
+      const pass = events.find((e) => e.type === 'dice:pass_to_roller');
+      const seatIndex = (pass?.payload as { rollerSeatIndex?: number } | undefined)?.rollerSeatIndex;
+      const st = (nextState ?? prev) as { seats?: Array<{ seatIndex: number; occupant?: { type: string; userId?: string; botId?: string; name?: string } | null }> } | null;
+      const seat = seatIndex != null ? st?.seats?.find((s) => s.seatIndex === seatIndex) ?? null : null;
+      const name = getOccupantDisplayName(seat, playerMetaRef.current);
+      showBanner({ type: 'ROTATION', message: `Dice moving to ${name}…` }, 2500);
+    }
+
     if (events.some((e) => e.type === 'dice:rotation')) {
+      if (resultTimerRef.current == null) {
+        setRolling(false);
+      }
       showBanner({ type: 'ROTATION', message: 'Next match…' }, 2500);
-      setRolling(false);
     }
 
     if (events.some((e) => e.type === 'dice:rolling')) {
@@ -191,7 +277,10 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
           ? ((nextState as { rollerSeatIndex?: number | null } | undefined)?.rollerSeatIndex ?? null)
           : null;
 
-        const revealMs = outcome === 'NO_RESULT' ? NO_RESULT_REVEAL_MS : RESULT_REVEAL_MS;
+        const revealMs = Math.max(
+          outcome === 'NO_RESULT' ? NO_RESULT_REVEAL_MS : RESULT_REVEAL_MS,
+          events.some((e) => e.type === 'dice:rolling') ? MIN_ROLL_ANIM_MS : 0,
+        );
         clearResultTimer();
         setDisplayResult({
           dice: p.dice,
@@ -318,10 +407,16 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
       if (cancelled || t.remainingMs == null) return;
       const secs = Math.max(0, Math.ceil(t.remainingMs / 1000));
       const phase = t.phase ?? '';
-      if (phase === 'PLAYER_TURN') {
+      if (phase === 'PLAYER_TURN' || phase === 'BETTING_TIMER') {
         setTurnTimerWsSeconds(secs);
-        setPhaseTimerKind(null);
-      } else if (phase === 'OPPONENT_MATCH' || phase === 'SIDE_BET' || phase === 'FINAL_LOCK') {
+        setPhaseTimerKind(phase === 'BETTING_TIMER' ? 'BETTING_TIMER' : null);
+      } else if (
+        phase === 'OPPONENT_MATCH'
+        || phase === 'SIDE_BET'
+        || phase === 'DICE_HANDOFF'
+        || phase === 'FINAL_LOCK'
+        || phase === 'INTER_ROUND_PAUSE'
+      ) {
         setPhaseTimerWsSeconds(secs);
         setPhaseTimerKind(phase);
       }
@@ -357,6 +452,7 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
     turnDeadlineAt?: string | null;
     sideBetWindowEndsAt?: string | null;
     opponentMatchWindowEndsAt?: string | null;
+    interRoundPauseEndsAt?: string | null;
     finalLockEndsAt?: string | null;
     mainBet?: { locked?: boolean; amount?: number; choice?: string } | null;
     activeMatch?: unknown;
@@ -402,9 +498,15 @@ export function useDiceGame(sessionId: string | undefined, userId?: string) {
   const rollDice = (meta?: { throw?: { dirX: number; dirZ: number; speed: number } }) =>
     sendAction(DICE_ACTIONS.ROLL_DICE, meta?.throw ? { throw: meta.throw } : {});
 
-  const requestSideBet = (targetUserId: string, prediction: 'WIN' | 'LOSS', amount: number) => {
+  const requestSideBet = (counterpartyUserId: string, prediction: 'WIN' | 'LOSS', amount: number) => {
     const sideBetId = `sb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    return sendAction(DICE_ACTIONS.REQUEST_SIDE_BET, { targetUserId, prediction, amount, sideBetId });
+    return sendAction(DICE_ACTIONS.REQUEST_SIDE_BET, {
+      counterpartyUserId,
+      targetUserId: counterpartyUserId,
+      prediction,
+      amount,
+      sideBetId,
+    });
   };
 
   const acceptSideBet = (sideBetId: string, amount?: number) =>

@@ -2,10 +2,13 @@ import type { Prisma, GameSession } from '@prisma/client';
 import type { GameEngineEvent } from '@games/game-engine';
 import {
   DEFAULT_DICE_CONFIG,
+  DICE_MAX_REAL_PLAYERS,
   claimRoundSettlement,
   computeMatchedPoolSettlement,
+  diceGameEngine,
   evaluateSideBet,
   sanitizePublicDiceState,
+  seatTigerBot,
   type DiceGameState,
   type DiceRoundResult,
 } from '@games/game-engine';
@@ -35,7 +38,7 @@ export class DiceService {
 
     return {
       minPlayers: game?.minPlayers ?? DEFAULT_DICE_CONFIG.minPlayers,
-      maxPlayers: game?.maxPlayers ?? DEFAULT_DICE_CONFIG.maxPlayers,
+      maxPlayers: Math.min(game?.maxPlayers ?? DEFAULT_DICE_CONFIG.maxPlayers, DICE_MAX_REAL_PLAYERS),
       minEffectivePopulation: DEFAULT_DICE_CONFIG.minEffectivePopulation,
       sideBetWindowSeconds: Number(settings?.sideBetWindowSeconds ?? DEFAULT_DICE_CONFIG.sideBetWindowSeconds),
       opponentMatchWindowSeconds: Number(settings?.opponentMatchWindowSeconds ?? DEFAULT_DICE_CONFIG.opponentMatchWindowSeconds),
@@ -45,7 +48,8 @@ export class DiceService {
       payoutMultiplier: Number(settings?.payoutMultiplier ?? DEFAULT_DICE_CONFIG.payoutMultiplier),
       minBet: Number(game?.minBet ?? settings?.minBet ?? DEFAULT_DICE_CONFIG.minBet),
       maxBet: Number(game?.maxBet ?? settings?.maxBet ?? DEFAULT_DICE_CONFIG.maxBet),
-      botName: String(settings?.botName ?? DEFAULT_DICE_CONFIG.botName),
+      // Always "Shoot" — ignore legacy settings that still say TIGER.
+      botName: DEFAULT_DICE_CONFIG.botName,
     };
   }
 
@@ -333,7 +337,7 @@ export class DiceService {
             roundNumber: state.roundNumber,
             roundId: state.roundId,
             backerUserId: sb.backerUserId,
-            targetUserId: sb.targetUserId,
+            targetUserId: sb.counterpartyUserId ?? sb.targetUserId ?? '',
             prediction: sb.prediction,
             amount: sb.amount,
             status: 'PENDING',
@@ -350,15 +354,16 @@ export class DiceService {
         };
         const state = (await prisma.gameSession.findUnique({ where: { id: session.id } }))!.state as unknown as DiceGameState;
         const sb = state.sideBets.find((s) => s.id === sideBetId);
-        const playerPart = acceptedAmount ?? sb?.playerAcceptedAmount ?? 0;
-        const tigerPart = sb?.tigerLiability ?? 0;
+        const counterpartyId = sb?.counterpartyUserId ?? sb?.targetUserId ?? null;
+        const playerPart = acceptedAmount ?? sb?.counterpartyAcceptedAmount ?? sb?.playerAcceptedAmount ?? 0;
+        const systemPart = sb?.systemLiability ?? sb?.tigerLiability ?? 0;
 
-        if (playerPart > 0 && sb?.playerLiabilityUserId) {
-          await walletService.lock(sb.playerLiabilityUserId, playerPart, {
+        if (playerPart > 0 && counterpartyId) {
+          await walletService.lock(counterpartyId, playerPart, {
             referenceType: 'side_bet',
             referenceId: `${sideBetId}-acceptor`,
             idempotencyKey: `accept-lock-${sideBetId}`,
-            description: 'Side bet liability locked',
+            description: 'Peer bet liability locked',
           });
         }
 
@@ -367,9 +372,12 @@ export class DiceService {
           data: {
             status: 'ACCEPTED',
             metadata: {
+              counterpartyAcceptedAmount: playerPart,
+              systemLiability: systemPart,
+              displayAcceptedByUserId: sb?.displayAcceptedByUserId ?? counterpartyId,
               playerAcceptedAmount: playerPart,
-              tigerLiability: tigerPart,
-              playerLiabilityUserId: sb?.playerLiabilityUserId ?? null,
+              tigerLiability: systemPart,
+              playerLiabilityUserId: counterpartyId,
             } as Prisma.InputJsonValue,
           },
         });
@@ -416,19 +424,29 @@ export class DiceService {
 
     for (const sb of accepted) {
       const meta = (sb.metadata ?? {}) as {
+        counterpartyAcceptedAmount?: number;
+        systemLiability?: number;
+        displayAcceptedByUserId?: string | null;
         playerAcceptedAmount?: number;
         tigerLiability?: number;
         playerLiabilityUserId?: string | null;
       };
       const total = parseAmount(sb.amount.toString());
-      const playerPart = parseAmount(String(meta.playerAcceptedAmount ?? 0));
-      const tigerPart = parseAmount(String(meta.tigerLiability ?? (playerPart > 0 ? total - playerPart : total)));
-      const acceptorId = meta.playerLiabilityUserId ?? (playerPart > 0 ? sb.targetUserId : null);
+      const playerPart = parseAmount(String(
+        meta.counterpartyAcceptedAmount ?? meta.playerAcceptedAmount ?? 0,
+      ));
+      const tigerPart = parseAmount(String(
+        meta.systemLiability ?? meta.tigerLiability ?? (playerPart > 0 ? total - playerPart : total),
+      ));
+      const acceptorId = meta.displayAcceptedByUserId
+        ?? meta.playerLiabilityUserId
+        ?? sb.targetUserId;
 
       const finalStatus = evaluateSideBet(
         {
           id: sb.id,
           backerUserId: sb.backerUserId,
+          counterpartyUserId: sb.targetUserId,
           targetUserId: sb.targetUserId,
           prediction: sb.prediction as 'WIN' | 'LOSS',
           amount: total,
@@ -477,7 +495,14 @@ export class DiceService {
               referenceType: 'side_bet',
               referenceId: `${sb.id}-acceptor`,
               idempotencyKey: `accept-loss-${sb.id}`,
-              description: 'Side bet liability lost',
+              description: 'Peer bet liability lost',
+            });
+          } else if (portion.kind === 'tiger') {
+            await walletService.debit(adminUserId, winnerPayout, 'GAME_DEBIT', {
+              referenceType: 'side_bet',
+              referenceId: `${sb.id}-house`,
+              idempotencyKey: `house-loss-${sb.id}`,
+              description: 'House peer bet liability lost',
             });
           }
         } else {
@@ -485,7 +510,7 @@ export class DiceService {
             referenceType: 'side_bet',
             referenceId: sb.id,
             idempotencyKey: `side-loss-${sb.id}-${portion.kind}`,
-            description: 'Side bet lost',
+            description: 'Peer bet lost',
           });
           if (portion.kind === 'player' && acceptorId) {
             await walletService.unlock(acceptorId, portion.stake, {
@@ -499,6 +524,14 @@ export class DiceService {
               sessionId,
               sb.id,
               `side-accept-win-${sb.id}`,
+            );
+          } else if (portion.kind === 'tiger') {
+            await walletService.gameCredit(
+              adminUserId,
+              winnerPayout,
+              sessionId,
+              sb.id,
+              `house-peer-win-${sb.id}`,
             );
           }
         }
@@ -623,7 +656,17 @@ export class DiceService {
     });
     if (!session) throw new NotFoundError('Session not found');
 
-    const rawState = session.state as unknown as DiceGameState;
+    let rawState = session.state as unknown as DiceGameState;
+    if (rawState?.seats) {
+      seatTigerBot(rawState);
+      diceGameEngine.loadState(sessionId, rawState);
+      rawState = diceGameEngine.getInternalState(sessionId) ?? rawState;
+      await prisma.gameSession.update({
+        where: { id: sessionId },
+        data: { state: rawState as unknown as Prisma.InputJsonValue },
+      });
+    }
+
     const state = sanitizePublicDiceState(rawState);
     const playerMeta = await getDicePlayerMeta(rawState);
 

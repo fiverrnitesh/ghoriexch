@@ -21,7 +21,7 @@
   width: 100%;
   max-width: 480px;
   background: linear-gradient(180deg, #240911 0%, #170408 100%);
-  border: 1px solid rgba(245, 200, 66, 0.35);
+  border: 1px solid rgba(255, 198, 41, 0.35);
   border-radius: 16px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(139, 0, 32, 0.25);
   padding: clamp(18px, 3.5vw, 24px);
@@ -40,9 +40,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid rgba(245, 200, 66, 0.45);
+  border: 1px solid rgba(255, 198, 41, 0.45);
   background: rgba(18, 14, 14, 0.95);
-  color: #f5d76e;
+  color: #FFC629;
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
@@ -55,8 +55,8 @@
   transition: all 0.15s ease;
 
   &:hover {
-    background: rgba(245, 200, 66, 0.25);
-    border-color: #f5c842;
+    background: rgba(255, 198, 41, 0.25);
+    border-color: #FFC629;
     color: #ffffff;
     transform: scale(1.1);
   }
@@ -80,16 +80,16 @@
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #f5c842;
+  color: #FFC629;
   margin-bottom: 0.3rem;
 }
 
 .coinBadge {
-  background: rgba(245, 200, 66, 0.15);
-  border: 1px solid rgba(245, 200, 66, 0.35);
+  background: rgba(255, 198, 41, 0.15);
+  border: 1px solid rgba(255, 198, 41, 0.35);
   padding: 1px 6px;
   border-radius: 4px;
-  color: #ffd700;
+  color: #FFC629;
   font-size: 0.62rem;
   letter-spacing: 0.05em;
 }
@@ -99,8 +99,8 @@
   font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  color: #f5d76e;
-  text-shadow: 0 0 16px rgba(245, 200, 66, 0.25);
+  color: #FFC629;
+  text-shadow: 0 0 16px rgba(255, 198, 41, 0.25);
   text-transform: uppercase;
 }
 
@@ -140,24 +140,24 @@
   outline: none;
 
   &:hover {
-    border-color: rgba(245, 200, 66, 0.4);
-    background: rgba(245, 200, 66, 0.06);
+    border-color: rgba(255, 198, 41, 0.4);
+    background: rgba(255, 198, 41, 0.06);
     transform: translateY(-1px);
   }
 
   &.selected {
-    border-color: #f5c842;
-    background: linear-gradient(180deg, rgba(245, 200, 66, 0.2) 0%, rgba(201, 162, 39, 0.08) 100%);
+    border-color: #FFC629;
+    background: linear-gradient(180deg, rgba(255, 198, 41, 0.2) 0%, rgba(217, 160, 27, 0.08) 100%);
     color: #ffffff;
-    box-shadow: 0 0 16px rgba(245, 200, 66, 0.24), inset 0 0 12px rgba(245, 200, 66, 0.12);
+    box-shadow: 0 0 16px rgba(255, 198, 41, 0.24), inset 0 0 12px rgba(255, 198, 41, 0.12);
     transform: translateY(-1px);
 
     & .playerCountNum {
-      color: #ffd700;
-      text-shadow: 0 0 10px rgba(245, 200, 66, 0.4);
+      color: #FFC629;
+      text-shadow: 0 0 10px rgba(255, 198, 41, 0.4);
     }
     & .playerLabel {
-      color: #f5d76e;
+      color: #FFC629;
     }
   }
 
@@ -250,7 +250,7 @@
 }
 
 .savePresetsBtn {
-  background: linear-gradient(180deg, #ffd700, #b8860b);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
   border: none;
   color: #1a0a00;
   font-size: 0.62rem;
@@ -299,15 +299,15 @@
   user-select: none;
 
   &:hover {
-    background: rgba(245, 200, 66, 0.2);
-    border-color: #f5d76e;
+    background: rgba(255, 198, 41, 0.2);
+    border-color: #FFC629;
     color: #ffffff;
     transform: translateY(-1px);
   }
 
   &:active {
     transform: translateY(1px);
-    background: rgba(245, 200, 66, 0.3);
+    background: rgba(255, 198, 41, 0.3);
   }
 }
 
@@ -315,9 +315,9 @@
   min-height: 38px;
   padding: 0.2rem 0.3rem;
   background: rgba(0, 0, 0, 0.6);
-  border: 1px solid #f5d76e;
+  border: 1px solid #FFC629;
   border-radius: 6px;
-  color: #ffd700;
+  color: #FFC629;
   font-size: 0.8rem;
   font-weight: 700;
   text-align: center;
@@ -363,7 +363,7 @@
 
   &:focus {
     outline: none;
-    border-color: #f5c842;
+    border-color: #FFC629;
   }
 }
 
@@ -375,7 +375,7 @@
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 8px;
-  color: #ffd700;
+  color: #FFC629;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -421,19 +421,19 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #1a0a00;
-  background: linear-gradient(180deg, #ffd700, #b8860b);
+  background: linear-gradient(180deg, #FFC629, #D9A01B);
   border: none;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 14px rgba(245, 200, 66, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 14px rgba(255, 198, 41, 0.25);
   transition: all 0.15s ease;
   display: flex;
   justify-content: center;
   align-items: center;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(180deg, #ffe033, #c9950e);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 200, 66, 0.4);
+    background: linear-gradient(180deg, #ffd04d, #D9A01B);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 198, 41, 0.4);
     transform: translateY(-1px);
   }
 

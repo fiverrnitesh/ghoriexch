@@ -2,8 +2,8 @@
   --bg-deep: #07050f;
   --bg-purple: #12081f;
   --surface-crimson: #2a0810;
-  --gold: #f5c842;
-  --gold-dim: #c9a227;
+  --gold: #FFC629;
+  --gold-dim: #D9A01B;
   --text-primary: #f5f0e8;
   --text-muted: #a89888;
   --danger: #ef4444;
@@ -24,13 +24,13 @@ a { color: inherit; }
 
 .panel {
   background: linear-gradient(145deg, #3d0f1a, #2a0810, #1a0a12);
-  border: 1px solid rgba(201,162,39,0.25);
+  border: 1px solid rgba(217, 160, 27, 0.25);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
 }
 
 .badge { display: inline-flex; padding: 0.2rem 0.55rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.badge--gold { background: rgba(245,200,66,0.15); color: var(--gold); border: 1px solid rgba(245,200,66,0.3); }
+.badge--gold { background: rgba(255,198,41,0.15); color: var(--gold); border: 1px solid rgba(255,198,41,0.3); }
 .badge--live { background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
 .badge--danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
 .badge--warn { background: rgba(245,158,11,0.15); color: var(--warn); border: 1px solid rgba(245,158,11,0.3); }
@@ -71,7 +71,7 @@ textarea.input { resize: vertical; }
 
 .btn { padding: 0.55rem 1rem; border: none; border-radius: 6px; font-family: var(--font-body); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--gold { background: linear-gradient(180deg, #e8b923, #c9a227); color: #1a0a00; }
+.btn--gold { background: linear-gradient(180deg, #FFC629, #D9A01B); color: #1a0a00; }
 .btn--ghost { background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid rgba(201,162,39,0.25); }
 
 .link-gold { color: var(--gold); text-decoration: none; font-weight: 600; }

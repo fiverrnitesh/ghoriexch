@@ -3,10 +3,10 @@ import { NotFoundError } from '../../lib/errors.js';
 import { roomService } from '../rooms/room.service.js';
 import { sessionService } from '../sessions/session.service.js';
 import { SIMULATION_ROOM_CODE } from './dice-simulation.constants.js';
-import { countRealUsers, hasTigerBot, type DiceGameState } from '@games/game-engine';
+import { countRealUsers, hasTigerBot, DICE_MAX_REAL_PLAYERS, type DiceGameState } from '@games/game-engine';
 
 const DICE_PLAY_LOCK_KEY = 74200102;
-const MAX_REAL_PLAYERS = 7;
+const MAX_REAL_PLAYERS = DICE_MAX_REAL_PLAYERS;
 
 type PlayRoomMeta = {
   gameMode?: string;

@@ -1,10 +1,7 @@
 import { Html } from '@react-three/drei';
 import { UserAvatar } from '../../../../design-system';
+import { isFarVisualSlot, isSideVisualSlot } from '../utils/seatPositions';
 import './DiceSeat.css';
-
-function isFarVisualSlot(visualSlot?: number) {
-  return visualSlot === 2 || visualSlot === 3 || visualSlot === 4 || visualSlot === 5;
-}
 
 export interface DiceSeatView {
   seatIndex: number;
@@ -23,13 +20,11 @@ export interface DiceSeatView {
   clickable?: boolean;
   balance?: string | null;
   onClick?: () => void;
-  timerSeconds?: number;
-  timerMaxSeconds?: number;
-  timerActive?: boolean;
+  peerBetEnabled?: boolean;
+  peerBetPending?: Array<{ label: string; amount: string }>;
+  onHaar?: () => void;
+  onZeet?: () => void;
 }
-
-const TIMER_RADIUS = 46;
-const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS;
 
 export function DiceSeat({
   visualSlot,
@@ -38,7 +33,6 @@ export function DiceSeat({
   isSelf,
   isActive,
   isDiceHolder,
-  isYourTurn,
   isWinner,
   isLoser,
   isSpectator,
@@ -46,38 +40,17 @@ export function DiceSeat({
   clickable,
   balance,
   onClick,
-  timerSeconds,
-  timerMaxSeconds = 15,
-  timerActive,
+  peerBetEnabled,
+  peerBetPending,
+  onHaar,
+  onZeet,
 }: DiceSeatView) {
   const far = isFarVisualSlot(visualSlot);
+  const side = isSideVisualSlot(visualSlot);
 
-  if (isEmpty) {
-    return null;
-  }
-
-  const shortName = name.length > 11 ? `${name.slice(0, 10)}…` : name;
-  const status = isWinner
-    ? 'WIN'
-    : isYourTurn
-      ? 'YOUR TURN'
-      : isDiceHolder
-        ? 'TURN'
-        : null;
-
-  const hasTimer = Boolean(timerActive && timerSeconds !== undefined && timerSeconds >= 0);
-  const currentSec = Math.max(0, timerSeconds ?? 0);
-  const maxSec = Math.max(1, timerMaxSeconds ?? 15);
-  const ratio = Math.min(1, Math.max(0, currentSec / maxSec));
-  const strokeDashoffset = TIMER_CIRCUMFERENCE * (1 - ratio);
-
-  // Color logic:
-  // Starts green -> turns yellow when time is little remaining (<= 8s or <= 40%) -> turns red when <= 5s
-  const timerColorClass = currentSec <= 5
-    ? 'dice-seat__timer--danger'
-    : currentSec <= 8 || ratio <= 0.45
-      ? 'dice-seat__timer--warning'
-      : 'dice-seat__timer--normal';
+  const displayName = name || 'Seat';
+  const shortName = displayName.length > 11 ? `${displayName.slice(0, 10)}…` : displayName;
+  const status = isEmpty ? null : isWinner ? 'WIN' : null;
 
   return (
     <div
@@ -87,12 +60,13 @@ export function DiceSeat({
         isSelf && 'dice-seat--self',
         isActive && 'dice-seat--active dice-seat--in-match',
         isDiceHolder && 'dice-seat--holder',
-        isYourTurn && 'dice-seat--your-turn',
         isWinner && 'dice-seat--winner',
         isLoser && 'dice-seat--loser',
-        isSpectator && !isActive && 'dice-seat--spectator',
+        isSpectator && !isActive && !isEmpty && 'dice-seat--spectator',
         clickable && 'dice-seat--clickable',
+        isEmpty && 'dice-seat--empty',
         far && 'dice-seat--far',
+        side && 'dice-seat--side',
       ].filter(Boolean).join(' ')}
       role={clickable ? 'button' : undefined}
       tabIndex={clickable ? 0 : undefined}
@@ -100,46 +74,53 @@ export function DiceSeat({
       onClick={clickable ? (e) => { e.stopPropagation(); onClick?.(); } : undefined}
       onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } } : undefined}
     >
-      <div className={`dice-seat__avatar-wrap ${hasTimer ? `dice-seat__avatar-wrap--timer ${timerColorClass}` : ''}`}>
-        {hasTimer ? (
-          <svg className="dice-seat__timer-svg" viewBox="0 0 100 100">
-            <circle
-              className="dice-seat__timer-track"
-              cx="50"
-              cy="50"
-              r={TIMER_RADIUS}
-            />
-            <circle
-              className="dice-seat__timer-circle"
-              cx="50"
-              cy="50"
-              r={TIMER_RADIUS}
-              style={{
-                strokeDasharray: TIMER_CIRCUMFERENCE,
-                strokeDashoffset,
-              }}
-            />
-          </svg>
-        ) : null}
+      <div className="dice-seat__avatar-wrap">
         <UserAvatar
-          name={name}
+          name={displayName}
           imageUrl={avatarUrl}
           size="lg"
-          highlight={!!(isDiceHolder || isYourTurn || isWinner)}
+          highlight={!isEmpty && !!(isActive || isWinner)}
           className="dice-seat__avatar"
         />
-        {hasTimer ? (
-          <span className="dice-seat__timer-badge">{currentSec}s</span>
-        ) : status ? (
+        {status ? (
           <span className="dice-seat__status">{status}</span>
         ) : null}
       </div>
       <div className="dice-seat__plate">
         <span className="dice-seat__name">{shortName}</span>
+        {peerBetPending && peerBetPending.length > 0 ? (
+          <div className="dice-seat__peer-pending">
+            {peerBetPending.map((badge, idx) => (
+              <span key={`${badge.label}-${idx}`} className="dice-seat__peer-pending-badge">
+                {badge.label} {badge.amount}
+              </span>
+            ))}
+          </div>
+        ) : null}
         {isSelf && balance ? (
           <span className="dice-seat__balance">{balance}</span>
         ) : null}
       </div>
+      {peerBetEnabled && !isEmpty ? (
+        <div className="dice-seat__peer-bets" style={{ pointerEvents: 'auto' }}>
+          <button
+            type="button"
+            className="dice-seat__peer-btn dice-seat__peer-btn--haar"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onHaar?.(); }}
+          >
+            Haar
+          </button>
+          <button
+            type="button"
+            className="dice-seat__peer-btn dice-seat__peer-btn--zeet"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onZeet?.(); }}
+          >
+            Zeet
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

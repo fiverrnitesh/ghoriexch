@@ -1,6 +1,6 @@
 export const IDEMPOTENCY_HEADER = 'x-idempotency-key';
 
-export const DEFAULT_CURRENCY = 'USD';
+export const DEFAULT_CURRENCY = 'PKR';
 
 export const GAME_CATEGORIES = [
   { id: 'popular', title: 'Popular Games' },
